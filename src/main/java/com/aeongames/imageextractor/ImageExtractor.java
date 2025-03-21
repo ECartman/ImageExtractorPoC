@@ -16,10 +16,8 @@ package com.aeongames.imageextractor;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.DataFlavor;
-import java.awt.datatransfer.FlavorEvent;
-import java.awt.datatransfer.FlavorListener;
-import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
+import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -75,6 +73,7 @@ public class ImageExtractor extends javax.swing.JFrame {
         jLabel4 = new javax.swing.JLabel();
         txtfolder = new javax.swing.JTextField();
         btautodecript = new javax.swing.JToggleButton();
+        PBstate = new javax.swing.JProgressBar();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -82,7 +81,7 @@ public class ImageExtractor extends javax.swing.JFrame {
 
         jLabel2.setText("Start Image ID:");
 
-        FileSpiner.setModel(new javax.swing.SpinnerNumberModel(164, 0, null, 1));
+        FileSpiner.setModel(new javax.swing.SpinnerNumberModel(226, 0, null, 1));
 
         javax.swing.GroupLayout PImageLayout = new javax.swing.GroupLayout(PImage);
         PImage.setLayout(PImageLayout);
@@ -110,7 +109,7 @@ public class ImageExtractor extends javax.swing.JFrame {
             }
         });
 
-        txtstatusbar.setText("jLabel3");
+        txtstatusbar.setText("Ready");
 
         txtlistenedData.setColumns(20);
         txtlistenedData.setLineWrap(true);
@@ -146,33 +145,34 @@ public class ImageExtractor extends javax.swing.JFrame {
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(txtstatusbar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jLabel1)
+                    .addComponent(jLabel2))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jScrollPane1)
                     .addGroup(layout.createSequentialGroup()
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jLabel1)
-                            .addComponent(jLabel2))
+                        .addComponent(FileSpiner, javax.swing.GroupLayout.PREFERRED_SIZE, 105, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jScrollPane1)
-                            .addGroup(layout.createSequentialGroup()
-                                .addComponent(FileSpiner, javax.swing.GroupLayout.PREFERRED_SIZE, 105, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(btauto)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(btautodecript)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                .addComponent(btProcessdata)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(jLabel3)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(txtImageType, javax.swing.GroupLayout.PREFERRED_SIZE, 67, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(jLabel4)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(txtfolder, javax.swing.GroupLayout.PREFERRED_SIZE, 144, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(btsave)))
-                        .addContainerGap())))
+                        .addComponent(btauto)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(btautodecript)
+                        .addGap(18, 18, 18)
+                        .addComponent(btProcessdata)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(jLabel3)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(txtImageType, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(jLabel4)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(txtfolder, javax.swing.GroupLayout.DEFAULT_SIZE, 212, Short.MAX_VALUE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(btsave)))
+                .addContainerGap())
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                .addComponent(PBstate, javax.swing.GroupLayout.PREFERRED_SIZE, 60, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(txtstatusbar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -196,12 +196,25 @@ public class ImageExtractor extends javax.swing.JFrame {
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(PImage, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(txtstatusbar)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(txtstatusbar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(PBstate, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addContainerGap())
         );
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
+
+    private void SetControlsEnablement(boolean enabled) {
+        txtlistenedData.setEditable(enabled);
+        txtlistenedData.setEnabled(enabled);
+        btProcessdata.setEnabled(enabled);
+        btsave.setEnabled(enabled);
+        btauto.setEnabled(enabled);
+        btautodecript.setEnabled(enabled);
+        PBstate.setIndeterminate(!enabled);
+    }
+
 
     private void btautoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btautoActionPerformed
         // TODO add your handling code here:
@@ -236,7 +249,6 @@ public class ImageExtractor extends javax.swing.JFrame {
      * @param args the command line arguments
      */
     public static void main(String args[]) {
-        /* Set the Nimbus look and feel */
         //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
         /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
          * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
@@ -252,10 +264,6 @@ public class ImageExtractor extends javax.swing.JFrame {
             java.util.logging.Logger.getLogger(ImageExtractor.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
         //</editor-fold>
-        //</editor-fold>
-
-        //</editor-fold>
-        //</editor-fold>
 
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(() -> {
@@ -265,6 +273,7 @@ public class ImageExtractor extends javax.swing.JFrame {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JSpinner FileSpiner;
+    private javax.swing.JProgressBar PBstate;
     private com.aeongames.edi.utils.visual.Panels.ImagePanel PImage;
     private javax.swing.JButton btProcessdata;
     private javax.swing.JToggleButton btauto;
@@ -282,121 +291,165 @@ public class ImageExtractor extends javax.swing.JFrame {
     // End of variables declaration//GEN-END:variables
 
     private void initListener() {
-        Clipboard sysClip = Toolkit.getDefaultToolkit().getSystemClipboard();
-        sysClip.addFlavorListener(new FlavorListener() {
-            @Override
-            public void flavorsChanged(final FlavorEvent e) {
-                txtstatusbar.setText("Processing Data From Clipboard");
-                new SwingWorker<String, String>() {
-                    @Override
-                    protected String doInBackground() throws Exception {
-                        String data = "";
-                        try {
-                            var transferable = ((Clipboard) e.getSource()).getContents(this);
-                            if (transferable.isDataFlavorSupported(DataFlavor.stringFlavor)) {
-                                data = transferable.getTransferData(DataFlavor.stringFlavor).toString();
-                            }
-                        } catch (UnsupportedFlavorException | IOException errrr) {
-                            Logger.getLogger(ImageExtractor.class.getName()).log(Level.SEVERE, null, errrr);
+        Toolkit.getDefaultToolkit().getSystemClipboard().addFlavorListener((final   var e) -> {
+            SetControlsEnablement(false);
+            new SwingWorker<String, String>() {
+                @Override
+                protected String doInBackground() throws Exception {
+                    String data = "";
+                    Clipboard clip = (Clipboard) e.getSource();
+                    try {
+                        var transferable = clip.getContents(this);
+                        publish("Clipboard Change Detected");
+                        if (transferable.isDataFlavorSupported(DataFlavor.stringFlavor)) {
+                            publish("Clipboard Change is Text");
+                            data = transferable.getTransferData(DataFlavor.stringFlavor).toString();
+                            publish("Clipboard Data Read");
                         }
-                        if (data != null) {
-                            publish(data);
-                        }
-                        try {
-                            sysClip.setContents(((Clipboard) e.getSource()).getContents(this), (Clipboard clipboard, Transferable contents) -> {
-                            });
-                        } catch (Throwable eerr) {
-                        }
-                        return data == null ? "" : data.strip();
+                    } catch (UnsupportedFlavorException | IOException errrr) {
+                        publish("error Reading the Clipboard");
+                        Logger.getLogger(ImageExtractor.class.getName()).log(Level.SEVERE, null, errrr);
+                    }
+                    try {
+                        publish("reseting the ownership on Clipboard");
+                        clip.setContents(clip.getContents(this), (var clipboard, var contents) -> {
+                        });
+                    } catch (Throwable e) {
                     }
 
-                    @Override
-                    protected void process(List<String> chunks) {
-                        StringBuilder dataparts = new StringBuilder();
-                        chunks.forEach((t) -> dataparts.append(t));
-                        var data = dataparts.toString();
-                        if (!data.equals(UnderlineData)) {
-                            if (data.length() < 100) {
-                                txtstatusbar.setText("ClipBoard UPDATED: " + data);
-                            } else {
-                                txtstatusbar.setText("ClipBoard UPDATED: " + data.substring(0, 90) + "...");
-                            }
-                            if (data.length() <= 300000) {
-                                txtlistenedData.setText(data);
-                            } else {
-                                txtlistenedData.setText(data.substring(0, 300000) + "...");
-                            }
-                            UnderlineData = data;
+                    if (data != null) {
+                        data = data.strip();
+                        if (data.length() < 100) {
+                            publish("ClipBoard UPDATED: " + data);
+                        } else {
+                            publish("ClipBoard UPDATED: " + data.substring(0, 90) + "...");
                         }
-                    }
-
-                    @Override
-                    protected void done() {
-                        try {
-                            var data = get();
-                            if (data != null && !data.equals(UnderlineData)) {
-                                if (data.length() < 100) {
-                                    txtstatusbar.setText("ClipBoard UPDATED: " + data);
-                                } else {
-                                    txtstatusbar.setText("ClipBoard UPDATED: " + data.substring(0, 100));
-                                }
-                                if (data.length() <= 300000) {
-                                    txtlistenedData.setText(data);
-                                } else {
-                                    txtlistenedData.setText(data.substring(0, 300000) + "...");
-                                }
+                        synchronized (ProcessingLock) {//deal with data one at the time 
+                            if (!data.equals(UnderlineData)) {
+                                publish("Clipboard Data is New");
                                 UnderlineData = data;
-
-                                if (btautodecript.isSelected()) {
-                                    decript();
-                                }
+                            } else {
+                                data = null;
                             }
-                        } catch (InterruptedException | ExecutionException ex) {
-                            Logger.getLogger(ImageExtractor.class.getName()).log(Level.SEVERE, null, ex);
                         }
                     }
-                }.execute();
+                    if (data!=null && data.length() >= 200000) {
+                        data = "truncated<" + data.substring(0, 75000) + "..." + data.substring(data.length() - 1000, data.length()) + " >truncated";
+                    }
+                    return data;
+                }
 
-            }
+                @Override
+                protected void process(List<String> chunks) {
+                    txtstatusbar.setText(chunks.getLast());
+                }
+
+                @Override
+                protected void done() {
+                    try {
+                        var data = get();
+                        if (data != null) {
+                            txtlistenedData.setText(data);
+                        }
+
+                        SetControlsEnablement(true);
+                        if (btautodecript.isSelected() && data != null) {
+                            decript();
+                        }
+                    } catch (InterruptedException | ExecutionException ex) {
+                        txtstatusbar.setText("Error While Loading Clipboard data");
+                        Logger.getLogger(ImageExtractor.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+            }.execute();
         });
-
     }
 
+    private final Object ProcessingLock = new Object();
+
     private void decript() {
-        txtstatusbar.setText("Decripting Base64 for data.");
-        if (UnderlineData == null) {
-            if (txtlistenedData.getText().strip().equals("")) {
-                return;
-            } else {
-                UnderlineData = txtlistenedData.getText().strip();
+        SetControlsEnablement(false);
+        new SwingWorker<BufferedImage, String>() {
+            @Override
+            protected BufferedImage doInBackground() throws Exception {
+                synchronized (ProcessingLock) {//deal with data one at the time 
+                    publish("Decripting Base64 for data.");
+                    var Stripdata = txtlistenedData.getText().strip();
+                    if (UnderlineData == null && Stripdata.equals("")) {
+                        publish("No Data, Skipping");
+                        return null;
+                    } else if (UnderlineData != null && UnderlineData.equals(Stripdata)) {
+                        publish("Image is Alredy process Skipping");
+                        return null;
+                    } else if (UnderlineData == null) {
+                        UnderlineData = Stripdata;
+                    }
+                    int pos;
+                    if (UnderlineData.length() > 1000) {
+                        pos = UnderlineData.indexOf(';', 0, 1000);//the delimiter HAS to be on the first part of the string. thus not waste time looking at the full string (assuing the string is long)
+                    } else {
+                        pos = UnderlineData.indexOf(';');
+                    }
+                    if (pos < 0) {
+                        publish("Data does not match the Required pattern, Skipping");
+                        return null;
+                    }
+                    //txtImageType.setText(UnderlineData.substring(0, pos));
+                    var imageType = UnderlineData.substring(0, pos);
+                    if (UnderlineData.length() > 1000) {
+                        pos = UnderlineData.indexOf(',', pos, 1000);//the delimiter HAS to be on the first part of the string. thus not waste time looking at the full string (assuing the string is long)
+                    } else {
+                        pos = UnderlineData.indexOf(',', pos);
+                    }
+                    String base64 = UnderlineData.substring(pos + 1);
+                    byte bytes[];
+                    try {
+                        bytes = Base64.getDecoder().decode(base64);
+                    } catch (IllegalArgumentException err) {
+                        publish("Data cannot be parsed as Base64 string, Skipping");
+                        return null;
+                    }
+                    try {
+                        var img = ImageIO.read(new ByteArrayInputStream(bytes));
+                        publish("Image Read.");
+                        if (btauto.isSelected()) {
+                            var destinationfolder = Paths.get(txtfolder.getText());
+                            var filename = FileSpiner.getModel().getValue().toString() + "." + (imageType.toLowerCase().contains("png") ? "png" : "jpg");
+                            destinationfolder = destinationfolder.resolve(filename);
+                            ImageIO.write(img, imageType.toLowerCase().contains("png") ? "png" : "jpg", Files.newOutputStream(destinationfolder, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE));
+                            publish("the File " + destinationfolder.toString() + " saved. ");
+                            FileSpiner.getModel().setValue(FileSpiner.getModel().getNextValue());
+                        }
+                        return img;
+                    } catch (java.nio.file.FileAlreadyExistsException exists) {
+                        publish("the File alredy exists::" + exists.getMessage());
+                    } catch (IOException ex) {
+                        Logger.getLogger(ImageExtractor.class.getName()).log(Level.SEVERE, null, ex);
+
+                    }
+                }
+                return null;
             }
-        }
-        int pos = UnderlineData.indexOf(';');
-        if (pos < 0) {
-            return;
-        }
-        txtImageType.setText(UnderlineData.substring(0, pos));
-        String search = "data:image/png;base64,";
-        String base64 = UnderlineData.substring(UnderlineData.lastIndexOf(search) + search.length());
-        var bytes = Base64.getDecoder().decode(base64);
 
-        try {
-            var img = ImageIO.read(new ByteArrayInputStream(bytes));
-            PImage.setImage(img);
-            if (btauto.isSelected()) {
-                var destinationfolder = Paths.get(txtfolder.getText());
-                var filename = FileSpiner.getModel().getValue().toString() + "." + (txtImageType.getText().toLowerCase().contains("png") ? "png" : "jpg");
-                destinationfolder = destinationfolder.resolve(filename);
-                ImageIO.write(img, txtImageType.getText().toLowerCase().contains("png") ? "png" : "jpg", Files.newOutputStream(destinationfolder, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE));
-                txtstatusbar.setText("the File " + destinationfolder.toString() + " saved. ");
-                FileSpiner.getModel().setValue(FileSpiner.getModel().getNextValue());
+            @Override
+
+            protected void process(List<String> chunks) {
+                txtstatusbar.setText(chunks.getLast());
             }
 
-        } catch (java.nio.file.FileAlreadyExistsException exists) {
-            txtstatusbar.setText("the File alredy exists::" + exists.getMessage());
-        } catch (IOException ex) {
-            Logger.getLogger(ImageExtractor.class.getName()).log(Level.SEVERE, null, ex);
+            @Override
+            protected void done() {
+                try {
+                    var image = get();
+                    if (image != null) {
+                        PImage.setImage(image);
+                    }
+                } catch (InterruptedException | ExecutionException ex) {
+                    Logger.getLogger(ImageExtractor.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                SetControlsEnablement(true);
+            }
+        }.execute();
 
-        }
     }
 }
