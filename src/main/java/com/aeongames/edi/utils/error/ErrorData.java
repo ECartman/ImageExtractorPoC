@@ -27,7 +27,7 @@ public class ErrorData {
     private final Throwable error;
 
     public ErrorData(Throwable error) {
-        Objects.requireNonNull(error, "the error cannot be null");
+        error=Objects.requireNonNull(error, "the error cannot be null");
         ErrorTittle = "Error on Execution";
         ErrorMessage = Objects.requireNonNullElse(error.getMessage(),
                Objects.requireNonNullElse(error.getCause().getMessage(),"Error during Execution"));
