@@ -14,14 +14,15 @@
 package com.aeongames.imageextractor;
 
 import com.aeongames.edi.utils.Clipboard.ClipBoardListener;
-import com.aeongames.edi.utils.error.LoggingHelper;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.security.NoSuchAlgorithmException;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import javax.swing.JFileChooser;
 
@@ -30,16 +31,22 @@ import javax.swing.JFileChooser;
  * @author cartman
  */
 public class ImageExtractor extends javax.swing.JFrame {
+
     private final ClipBoardListener MainListener;
+    private final ImageProcessor MyProcessor;
 
     /**
      * Creates new form ToolBase
+     *
+     * @throws java.security.NoSuchAlgorithmException
      */
-    public ImageExtractor() {
+    public ImageExtractor() throws NoSuchAlgorithmException {
         initComponents();
-        MainListener= new ClipBoardListener();
+        var safePath=Paths.get(System.getProperty("user.home"), "Downloads");
+        txtfolder.setText(safePath.toString());        
+        MyProcessor = new ImageProcessor(safePath);
+        MainListener = new ClipBoardListener();
         initListener();
-        txtfolder.setText(Paths.get(System.getProperty("user.home"), "Downloads").toString());
     }
 
     /**
@@ -128,7 +135,7 @@ public class ImageExtractor extends javax.swing.JFrame {
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jScrollPane1)
                     .addGroup(layout.createSequentialGroup()
-                        .addComponent(FileSpiner, javax.swing.GroupLayout.PREFERRED_SIZE, 105, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(FileSpiner, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(btauto)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
@@ -138,14 +145,13 @@ public class ImageExtractor extends javax.swing.JFrame {
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(jLabel3)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(txtImageType, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(txtImageType)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(jLabel4)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(txtfolder, javax.swing.GroupLayout.DEFAULT_SIZE, 212, Short.MAX_VALUE)
+                        .addComponent(txtfolder)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(btsave)))
-                .addContainerGap())
+                        .addComponent(btsave))))
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                 .addComponent(PBstate, javax.swing.GroupLayout.PREFERRED_SIZE, 60, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
@@ -158,7 +164,7 @@ public class ImageExtractor extends javax.swing.JFrame {
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jLabel1)
                     .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(17, 17, 17)
+                .addGap(5, 5, 5)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel2)
                     .addComponent(FileSpiner, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -207,6 +213,7 @@ public class ImageExtractor extends javax.swing.JFrame {
         } else {
             txtfolder.setText(Paths.get(System.getProperty("user.home"), "Downloads").toString());
         }
+        MyProcessor.updateSafePath(Path.of(txtfolder.getText()));
 
     }//GEN-LAST:event_btsaveActionPerformed
 
@@ -232,7 +239,11 @@ public class ImageExtractor extends javax.swing.JFrame {
 
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(() -> {
-            new ImageExtractor().setVisible(true);
+            try {
+                new ImageExtractor().setVisible(true);
+            } catch (NoSuchAlgorithmException ex) {
+                Logger.getLogger(ImageExtractor.class.getName()).log(Level.SEVERE, null, ex);
+            }
         });
     }
 
@@ -256,22 +267,17 @@ public class ImageExtractor extends javax.swing.JFrame {
     // End of variables declaration//GEN-END:variables
 
     private void initListener() {
-        try {
-            var procesor = new ImageProcessor();
-            MainListener.addFlavorHandler(procesor.mySupportedFlavor(), procesor);
-            MainListener.StartClipBoardService();
-            //TODO we need a way to update the UI
-            //SetControlsEnablement(false);
-            /*
+        MainListener.addFlavorHandler(MyProcessor.mySupportedFlavor(), MyProcessor);
+        MainListener.StartClipBoardService();
+        //TODO we need a way to update the UI
+        //SetControlsEnablement(false);
+        /*
             protected void process(List<String> chunks) {
             txtstatusbar.setText(chunks.getLast());
             }
-            */
-        } catch (NoSuchAlgorithmException ex) {
-            LoggingHelper.getLogger(ImageExtractor.class.getName()).log(Level.SEVERE, null, ex);
-        }
+         */
     }
-    
+
     private String ProcessImageToFile(BufferedImage img, String imageType) throws IOException {
         if (btauto.isSelected()) {
             var destinationfolder = Paths.get(txtfolder.getText());
@@ -283,6 +289,5 @@ public class ImageExtractor extends javax.swing.JFrame {
         }
         return "";
     }
-
 
 }

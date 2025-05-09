@@ -124,10 +124,10 @@ public class ClipBoardListener implements Runnable, FlavorListener {
      * provide priority to the handlers. the first handler in the list will be
      * the first one to be called. and so on.
      *
-     * @param flavor the Flavor that we want to handle using the provided
-     * FlavorProcessor
+     * @param flavor  the Flavor that we want to handle using the provided
+     *                FlavorProcessor
      * @param handler the FlavorProcessor to register with the provided data
-     * flavor
+     *                flavor
      * @throws IllegalStateException if the service is running or processing
      */
     public final void addFlavorHandler(DataFlavor flavor, FlavorProcessor handler) {
@@ -140,7 +140,7 @@ public class ClipBoardListener implements Runnable, FlavorListener {
      * provide priority to the handlers. the first handler in the list will be
      * the first one to be called. and so on.
      *
-     * @param flavor the flavor the FlavorProcessor will handle
+     * @param flavor  the flavor the FlavorProcessor will handle
      * @param handler the FlavorProcessor to add
      * @throws IllegalStateException if the service is running or processing
      */
@@ -194,14 +194,15 @@ public class ClipBoardListener implements Runnable, FlavorListener {
      * for Clipboard changes.
      *
      * @return true if the service started false otherwise (the service was
-     * already running, there are no Clipboard Handlers or otherwise fail to init)
+     *         already running, there are no Clipboard Handlers or otherwise fail to
+     *         init)
      */
     public synchronized boolean StartClipBoardService() {
         // if service alredy running. then we cannot "start it"
         if (ServiceOnline) {
             return false;
         }
-        if(FlavorsListPriority.isEmpty()){
+        if (FlavorsListPriority.isEmpty()) {
             return false;
         }
         // if service is set to finish but still processing or hang. we cannot restart
@@ -255,7 +256,7 @@ public class ClipBoardListener implements Runnable, FlavorListener {
      * method
      *
      * @return true if the request to stop the service was accepted. false if
-     * the service was not running.
+     *         the service was not running.
      */
     public synchronized boolean StopClipBoardService() {
         if (!ServiceOnline) {
@@ -301,7 +302,7 @@ public class ClipBoardListener implements Runnable, FlavorListener {
      * </ul>
      *
      * @return true if the request was successfully submitted. false if the
-     * service was not running. or not processing clipboard data.
+     *         service was not running. or not processing clipboard data.
      */
     public synchronized boolean StopClipBoardProcessing() {
         if (!ProcessingTask) {
@@ -317,7 +318,7 @@ public class ClipBoardListener implements Runnable, FlavorListener {
      * service has requested to stop please check the {@link isServiceOnline}
      *
      * @apiNote the result from this function is immediately deprecated as the
-     * service state might change while it is executed.
+     *          service state might change while it is executed.
      * @return true if the service Thread is running. false otherwise.
      * @see ServiceOnline
      */
@@ -339,7 +340,7 @@ public class ClipBoardListener implements Runnable, FlavorListener {
      * function returns true. but the thread is not running.
      *
      * @apiNote the result from this function is immediately deprecated as the
-     * service state might change while it is executed.
+     *          service state might change while it is executed.
      * @return true if the ServiceOnline flag is set to true. false otherwise.
      * @see isServiceThreadRunning
      */
@@ -355,9 +356,9 @@ public class ClipBoardListener implements Runnable, FlavorListener {
      * {@link isServiceThreadRunning} or {@link isServiceOnline}
      *
      * @apiNote the result from this function is immediately deprecated as the
-     * service state might change while it is executed.
+     *          service state might change while it is executed.
      * @return true if the service state is processing data from the clipboard.
-     * false otherwise.
+     *         false otherwise.
      */
     public boolean isProcessingTask() {
         return ProcessingTask;
@@ -406,32 +407,51 @@ public class ClipBoardListener implements Runnable, FlavorListener {
 
     /**
      * request to process a change on the Clipboard. that was booked into this
-     * service. for the specified Clipboard resource. 
-     * @param clipboard the clipboard resource to pull the change from 
+     * service. for the specified Clipboard resource.
+     *
+     * @param clipboard the clipboard resource to pull the change from
      */
     private void processClipboardChange(Clipboard clipboard) {
-        try {
-            Transferable contents = clipboard.getContents(this);
-            // if a interrupt to the process has been requested bail out.
-            // also if the content of the Clipboard is null we will bail out.
-            if (Objects.isNull(contents) || !ProcessingTask) {
-                return;
-            }
-            // check if the clipboard has any of the flavors we are interested in.
-            DebugLog(contents);
-            for (FlavorHandler handler : FlavorsListPriority) {
-                if (!ProcessingTask) {
+        boolean errorstate;
+        int pendingRetry = 3;
+        do {
+            errorstate = false;
+            try {
+                Transferable contents = clipboard.getContents(this);
+                // if a interrupt to the process has been requested bail out.
+                // also if the content of the Clipboard is null we will bail out.
+                if (Objects.isNull(contents) || !ProcessingTask) {
                     return;
                 }
-                var result = handler.handleFlavor(contents, clipboard);
-                // we have processed the flavor. we can bail out.
-                if (result) {
-                    break;
+                // check if the clipboard has any of the flavors we are interested in.
+                DebugLog(contents);
+                for (FlavorHandler handler : FlavorsListPriority) {
+                    if (!ProcessingTask) {
+                        return;
+                    }
+                    var result = handler.handleFlavor(contents, clipboard);
+                    // we have processed the flavor. we can bail out.
+                    if (result) {
+                        break;
+                    }
                 }
+            } catch (IllegalStateException ise) {
+                LoggingHelper.getLogger(ClipBoardListener.class.getName()).log(Level.SEVERE,
+                        "Clipboard State Error. Delaying the Procesesing", ise);
+                try {
+                    Thread.sleep(170);
+                } catch (InterruptedException ex) {
+                }
+                // only retry if we have not exausted the retry count.
+                // (and yes we decrement post usage)
+                if (pendingRetry-- > 0) {
+                    errorstate = true;
+                }
+            } catch (Exception ex) {
+                LoggingHelper.getLogger(ClipBoardListener.class.getName()).log(Level.SEVERE, "Error reading clipboard",
+                        ex);
             }
-        } catch (Exception ex) {
-            LoggingHelper.getLogger(ClipBoardListener.class.getName()).log(Level.SEVERE, "Error reading clipboard", ex);
-        }
+        } while (errorstate == true);
     }
 
     private void DebugLog(Transferable contents) {

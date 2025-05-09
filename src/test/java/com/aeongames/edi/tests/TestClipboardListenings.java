@@ -13,9 +13,11 @@ package com.aeongames.edi.tests;
  * 
  */
 import com.aeongames.edi.utils.Clipboard.ClipBoardListener;
+import com.aeongames.edi.utils.Clipboard.CharsetCompatibilityChecker;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.junit.jupiter.api.AfterEach;
@@ -56,6 +58,32 @@ public class TestClipboardListenings {
     public void tearDown() {
     }
 
+    @Test
+    @Tag("characterCompativility")
+    public void testCharacterCompativility() {
+        System.out.println("Running testCharacterCompativility");
+        Charset utf8 = Charset.forName("UTF-8");
+        Charset utf16 = Charset.forName("UTF-16");
+        Charset utf16be = Charset.forName("UTF-16BE");
+        Charset utf16le = Charset.forName("UTF-16LE");
+        Charset iso88591 = Charset.forName("ISO-8859-1");
+        Charset windows1252 = Charset.forName("Windows-1252");
+        Charset UTF32 = Charset.forName("UTF-32");
+
+        var result = CharsetCompatibilityChecker.charsetCompatibleWithBase64(utf8);
+        System.out.println("UTF-8 is ASCII-congruent: " + result);
+        Assertions.assertTrue(result, "UTF-8 is ASCII-congruent. Fail.");
+        result = CharsetCompatibilityChecker.charsetCompatibleWithBase64(utf16);
+        System.out.println("UTF-16 is ASCII-congruent: " + result);
+        System.out.println("UTF-16BE is ASCII-congruent: " + CharsetCompatibilityChecker.charsetCompatibleWithBase64(utf16be));
+        System.out.println("UTF-16LE is ASCII-congruent: " + CharsetCompatibilityChecker.charsetCompatibleWithBase64(utf16le));
+        System.out.println("ISO-8859-1 is ASCII-congruent: " + CharsetCompatibilityChecker.charsetCompatibleWithBase64(iso88591));
+        System.out.println("Windows-1252 is ASCII-congruent: " + CharsetCompatibilityChecker.charsetCompatibleWithBase64(windows1252));
+        result = CharsetCompatibilityChecker.charsetCompatibleWithBase64(UTF32);
+        System.out.println("UTF32 is ASCII-congruent: " + result);
+        Assertions.assertTrue(result, "UTF32 is ASCII-congruent test FAIL");
+    }
+
     // TODO add test methods here.
     // The methods must be annotated with annotation @Test. For example:
     //
@@ -67,29 +95,39 @@ public class TestClipboardListenings {
         System.out.println("Running ClipboardSingleTest");
         ClipBoardListener TestingClipboardListener;
         TestingClipboardListener = new ClipBoardListener();
-        TestingClipboardListener.addFlavorHandler(DataFlavor.getTextPlainUnicodeFlavor(),(flavor, stopProvider, transferData, clipboard) -> {
-            //asure that we are not to stop processing
-            if(stopProvider.isStopSignalReceived()) return false;
-            try {
-                //assure that the flavot is backed by a input stream 
-                if(!flavor.isRepresentationClassInputStream())return false;
-                //InputStream TrasferableData= (InputStream) transferData.getTransferData(flavor);
-                //now for this implementation we should have a InputStream 
-                //lets assure that. 
-                var reader= flavor.getReaderForText(transferData);
-                if(stopProvider.isStopSignalReceived()) return false;
-                StringBuilder DataSofar= new StringBuilder();
-                char buffer[]= new char[30];
-                while(reader.read(buffer)!=-1){
-                    DataSofar.append(buffer);
-                    System.out.println(DataSofar.toString());
-                    if(stopProvider.isStopSignalReceived()) return false;
-                }
-            } catch (UnsupportedFlavorException | IOException ex) {
-                Logger.getLogger(TestClipboardListenings.class.getName()).log(Level.SEVERE, null, ex);
-            }
-            return false;
-        });
+        TestingClipboardListener.addFlavorHandler(DataFlavor.getTextPlainUnicodeFlavor(),
+                (flavor, stopProvider, transferData, clipboard) -> {
+                    // asure that we are not to stop processing
+                    if (stopProvider.isStopSignalReceived()) {
+                        return false;
+                    }
+                    try {
+                        // assure that the flavot is backed by a input stream
+                        if (!flavor.isRepresentationClassInputStream()) {
+                            return false;
+                        }
+                        // InputStream TrasferableData= (InputStream)
+                        // transferData.getTransferData(flavor);
+                        // now for this implementation we should have a InputStream
+                        // lets assure that.
+                        var reader = flavor.getReaderForText(transferData);
+                        if (stopProvider.isStopSignalReceived()) {
+                            return false;
+                        }
+                        StringBuilder DataSofar = new StringBuilder();
+                        char buffer[] = new char[30];
+                        while (reader.read(buffer) != -1) {
+                            DataSofar.append(buffer);
+                            System.out.println(DataSofar.toString());
+                            if (stopProvider.isStopSignalReceived()) {
+                                return false;
+                            }
+                        }
+                    } catch (UnsupportedFlavorException | IOException ex) {
+                        Logger.getLogger(TestClipboardListenings.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                    return false;
+                });
         var result = TestingClipboardListener.StartClipBoardService();
         Assertions.assertTrue(result, "The clipboard service fail to start");
         try {
@@ -100,7 +138,7 @@ public class TestClipboardListenings {
             Logger.getLogger(TestClipboardListenings.class.getName()).log(Level.SEVERE, null, ex);
             Assertions.fail();
         }
-       TestingClipboardListener.StopClipBoardService();
-       TestingClipboardListener.StopClipBoardProcessing();
+        TestingClipboardListener.StopClipBoardService();
+        TestingClipboardListener.StopClipBoardProcessing();
     }
 }

@@ -15,6 +15,7 @@ package com.aeongames.imageextractor;
 import com.aeongames.edi.utils.Clipboard.CharsetCompatibilityChecker;
 import com.aeongames.edi.utils.Clipboard.FlavorProcessor;
 import com.aeongames.edi.utils.ThreadUtils.StopSignalProvider;
+import com.aeongames.edi.utils.common.ByteUtils;
 import com.aeongames.edi.utils.error.LoggingHelper;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.DataFlavor;
@@ -61,7 +62,8 @@ import javax.imageio.ImageIO;
  */
 public class ImageProcessor extends UIChangeNotifier implements FlavorProcessor {
 
-    private LinkedList<byte[]> Signatures;
+    private transient Path SafeLocation;
+    private LinkedList<String> Signatures;
     private static final DataFlavor PROCESSORFLAVOR = DataFlavor.getTextPlainUnicodeFlavor();
     private MessageDigest Hasher;
 
@@ -71,7 +73,8 @@ public class ImageProcessor extends UIChangeNotifier implements FlavorProcessor 
      * @exception NoSuchAlgorithmException if we cannot initialize the Message
      * Digester.
      */
-    public ImageProcessor() throws NoSuchAlgorithmException {
+    public ImageProcessor(Path safePath) throws NoSuchAlgorithmException {
+        SafeLocation = safePath;
         Signatures = new LinkedList<>();
         try {
             Hasher = MessageDigest.getInstance("SHA-256");
@@ -81,6 +84,14 @@ public class ImageProcessor extends UIChangeNotifier implements FlavorProcessor 
             // rethrow the error we cannot work without a hasher.
             throw ex;
         }
+    }
+
+    public synchronized boolean updateSafePath(Path safePath) {
+        if (!Files.exists(safePath) || !Files.isDirectory(safePath) || !Files.isWritable(safePath)) {
+            return false;
+        }
+        SafeLocation = safePath;
+        return true;
     }
 
     /**
@@ -178,10 +189,25 @@ public class ImageProcessor extends UIChangeNotifier implements FlavorProcessor 
                 if (stopProvider.isStopSignalReceived()) {
                     return false;
                 }
+                var signature = ByteUtils.ByteArrayToString(digestStream.getMessageDigest().digest());
+                if(Signatures.contains(signature)){
+                    //we alredy had process this image. 
+                    //do some notification??
+                    return true;//we dont need to safe it. again. 
+                }
+                Signatures.add(signature);
                 //test
                 if (image != null) {
-                    boolean write = ImageIO.write(image, imageType.toLowerCase().contains("png") ? "png" : "jpg", Files.newOutputStream(Path.of("C:\\", "Users", "cartman", "Desktop", "imager." + (imageType.toLowerCase().contains("png") ? "png" : "jpg")), StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE));
-                    return write;
+                    final Path FilePath;
+                    if (imageType != null) {
+                        imageType = imageType.toLowerCase().contains("png") ? "png" : "jpg";
+                    } else {
+                        imageType = "png";
+                    }
+                    synchronized (this) {
+                        FilePath = SafeLocation.resolve(String.format("%s.%s", "TODO", imageType));
+                    }
+                    return ImageIO.write(image, imageType, Files.newOutputStream(FilePath, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE));
                 }
             }
 
@@ -205,10 +231,7 @@ public class ImageProcessor extends UIChangeNotifier implements FlavorProcessor 
         }
         // assure that the Flavor can be handled Correctly here.
         // and if not return false as we cannot handle.
-        if (!flavor.isRepresentationClassInputStream()) {
-            return false;
-        }
-        return true;
+        return flavor.isRepresentationClassInputStream();
     }
 
     /**
@@ -309,25 +332,6 @@ public class ImageProcessor extends UIChangeNotifier implements FlavorProcessor 
 
     /**
      * TODO: THIS CODE NEEDS MIGRATION TO THE NEW system.
-     *
-     * new SwingWorker<BufferedImage, String>() {
-     *
-     * @Override protected BufferedImage doInBackground() throws Exception {
-     * publish("Decripting Base64 for data."); if (UnderlineData.length() >
-     * 1000) { pos = UnderlineData.indexOf(';', 0, 1000);//the delimiter HAS to
-     * be on the first part of the string. thus not waste time looking at the
-     * full string (assuing the string is long) } else { pos =
-     * UnderlineData.indexOf(';'); } if (pos < 0) {
-     *           publish("Data does not match the Required pattern, Skipping");
-     *           return null;
-     *           }
-     *           //txtImageType.setText(UnderlineData.substring(0, pos));
-     *           var imageType = UnderlineData.substring(0, pos);
-     *           if (UnderlineData.length() > 1000) { pos = UnderlineData.indexOf(',',
-     * pos, 1000);//the delimiter HAS to be on the first part of the string.
-     * thus not waste time looking at the full string (assuing the string is
-     * long) } else { pos = UnderlineData.indexOf(',', pos); } String base64 =
-     * UnderlineData.substring(pos + 1); byte bytes[]; try { bytes =
      * Base64.getDecoder().decode(base64); } catch (IllegalArgumentException
      * err) { publish("Data cannot be parsed as Base64 string, Skipping");
      * return null; } try { var img = ImageIO.read(new
@@ -347,21 +351,5 @@ public class ImageProcessor extends UIChangeNotifier implements FlavorProcessor 
      * (IOException ex) {
      * Logger.getLogger(ImageExtractor.class.getName()).log(Level.SEVERE, null,
      * ex);
-     *
-     * }
-     * return null; }
-     *
-     * @Override
-     *
-     * protected void process(List<String> chunks) {
-     * txtstatusbar.setText(chunks.getLast()); }
-     *
-     * @Override protected void done() { try { var image = get(); if (image !=
-     * null) { PImage.setImage(image); } } catch (InterruptedException |
-     * ExecutionException ex) {
-     * Logger.getLogger(ImageExtractor.class.getName()).log(Level.SEVERE, null,
-     * ex); } SetControlsEnablement(true); } }.execute();
-     *
-     *
      */
 }
