@@ -133,17 +133,11 @@
         <Property name="selected" type="boolean" value="true"/>
         <Property name="text" type="java.lang.String" value="Auto-Save"/>
       </Properties>
-      <Events>
-        <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btautoActionPerformed"/>
-      </Events>
     </Component>
     <Component class="javax.swing.JButton" name="btProcessdata">
       <Properties>
         <Property name="text" type="java.lang.String" value="Decript"/>
       </Properties>
-      <Events>
-        <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btProcessdataActionPerformed"/>
-      </Events>
     </Component>
     <Component class="javax.swing.JLabel" name="txtstatusbar">
       <Properties>
@@ -190,9 +184,6 @@
       </Properties>
     </Component>
     <Component class="javax.swing.JTextField" name="txtfolder">
-      <Events>
-        <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="txtfolderActionPerformed"/>
-      </Events>
     </Component>
     <Component class="javax.swing.JToggleButton" name="btautodecript">
       <Properties>
