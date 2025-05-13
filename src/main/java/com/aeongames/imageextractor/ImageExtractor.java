@@ -13,7 +13,7 @@
  */
 package com.aeongames.imageextractor;
 
-import com.aeongames.edi.utils.Clipboard.ClipBoardListener;
+import com.aeongames.edi.utils.Clipboard.ClipboardService;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -32,7 +32,7 @@ import javax.swing.JFileChooser;
  */
 public class ImageExtractor extends javax.swing.JFrame {
 
-    private final ClipBoardListener MainListener;
+    private final ClipboardService MainListener;
     private final ImageProcessor MyProcessor;
 
     /**
@@ -45,7 +45,7 @@ public class ImageExtractor extends javax.swing.JFrame {
         var safePath=Paths.get(System.getProperty("user.home"), "Downloads");
         txtfolder.setText(safePath.toString());        
         MyProcessor = new ImageProcessor(safePath);
-        MainListener = new ClipBoardListener();
+        MainListener = ClipboardService.getCliboardService();
         initListener();
     }
 
@@ -267,6 +267,10 @@ public class ImageExtractor extends javax.swing.JFrame {
     // End of variables declaration//GEN-END:variables
 
     private void initListener() {
+        if(MainListener.isProcessingTask() || MainListener.isServiceOnline()){
+            //we cannot add as the service is online 
+            return;
+        }
         MainListener.addFlavorHandler(MyProcessor,MyProcessor.mySupportedFlavor());
         MainListener.StartClipBoardService();
         //TODO we need a way to update the UI

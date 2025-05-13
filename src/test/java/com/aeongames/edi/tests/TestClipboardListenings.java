@@ -12,7 +12,7 @@ package com.aeongames.edi.tests;
  *  THE SOFTWARE.
  * 
  */
-import com.aeongames.edi.utils.Clipboard.ClipBoardListener;
+import com.aeongames.edi.utils.Clipboard.ClipboardService;
 import com.aeongames.edi.utils.Clipboard.CharsetCompatibilityChecker;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.UnsupportedFlavorException;
@@ -93,8 +93,8 @@ public class TestClipboardListenings {
     @Tag("SigleTest")
     public void ClipboardSingleTest() {
         System.out.println("Running ClipboardSingleTest");
-        ClipBoardListener TestingClipboardListener;
-        TestingClipboardListener = new ClipBoardListener();
+        ClipboardService TestingClipboardListener = ClipboardService.getCliboardService();
+        //we should check if running but for this test is not required.
         TestingClipboardListener.addFlavorHandler(
                 (flavor, stopProvider, transferData, clipboard) -> {
                     // asure that we are not to stop processing
