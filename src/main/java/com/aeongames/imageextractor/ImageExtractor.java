@@ -267,7 +267,7 @@ public class ImageExtractor extends javax.swing.JFrame {
     // End of variables declaration//GEN-END:variables
 
     private void initListener() {
-        MainListener.addFlavorHandler(MyProcessor.mySupportedFlavor(), MyProcessor);
+        MainListener.addFlavorHandler(MyProcessor,MyProcessor.mySupportedFlavor());
         MainListener.StartClipBoardService();
         //TODO we need a way to update the UI
         //SetControlsEnablement(false);

@@ -15,32 +15,172 @@ import com.aeongames.edi.utils.error.LoggingHelper;
 import java.awt.HeadlessException;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.ClipboardOwner;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.FlavorEvent;
 import java.awt.datatransfer.FlavorListener;
 import java.awt.datatransfer.Transferable;
-import java.util.LinkedList;
-import java.util.List;
+import java.awt.datatransfer.UnsupportedFlavorException;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import javax.swing.SwingUtilities;
 
 /**
+ * Preface: java AWT implementation to read the Clipboard is bad because it
+ * hides a lot of nuance and computation that might happends. and does not
+ * disclose nuances.
+ *
+ * when pulling data from the Clipboard the best approach for long chunks of
+ * data (and do note that the clipboard has no limit on the amount of data it
+ * could hold is best to use a stream. as a Stream remove some overhead from
+ * other ways. and provide a finer Control unfortunately it still imply some
+ * overhead. due char Enconding. according to the JDK code at
+ * <code>DataTransfer.translateBytes</code> Target data is an InputStream. For
+ * arbitrary flavors, just return // the raw bytes. For text flavors, decode to
+ * strip terminators and // search-and-replace EOLN, then <Strong>re
+ * encode</Strong> according to the requested // flavor. example:: at
+ * java.nio.HeapCharBuffer.ix(HeapCharBuffer.java:162) at
+ * java.nio.HeapCharBuffer.put(HeapCharBuffer.java:216) at
+ * sun.nio.cs.UnicodeDecoder.decodeLoop(UnicodeDecoder.java:116) at
+ * java.nio.charset.CharsetDecoder.decode(CharsetDecoder.java:586) at
+ * sun.nio.cs.StreamDecoder.implRead(StreamDecoder.java:385) at
+ * sun.nio.cs.StreamDecoder.lockedRead(StreamDecoder.java:217) at
+ * sun.nio.cs.<Strong>StreamDecoder</Strong>.read(StreamDecoder.java:171) at
+ * java.io.InputStreamReader.read(InputStreamReader.java:188) at
+ * java.io.BufferedReader.fill(BufferedReader.java:160) at
+ * java.io.BufferedReader.implRead(BufferedReader.java:196) at
+ * java.io.BufferedReader.read(BufferedReader.java:181) at
+ * sun.awt.datatransfer.DataTransferer$ReencodingInputStream.readChar(DataTransferer.java:1523)
+ * at
+ * sun.awt.datatransfer.DataTransferer$<Strong>ReencodingInputStream</Strong>.read(DataTransferer.java:1548)
+ * at java.io.InputStream.read(InputStream.java:296) at
+ * java.io.InputStream.readNBytes(InputStream.java:412) at
+ * java.io.InputStream.readAllBytes(InputStream.java:349) at [your code] at
+ * java.lang.Thread.runWith(Thread.java:1596) at
+ * java.lang.Thread.run(Thread.java:1583)
+ *
+ * the Advantage of this approach is that you can process as much data as you
+ * need to and stop as you deemed it has reached a point that is too much.
+ * rather that awaiting on a stuck processing. for example using another
+ * approach would be:
+ *
+ *
+ * that most of my Rant is on regards of the general abstract code and the
+ * specific Windows implementation.
+ *
+ * 1) the Clipboard pre-gathers the clipboard data upon request so for example
+ * from the moment you get the "Transferable object" it PREFETCHS the
+ * information as far as i have seen it might pre fetch partial but seems to do
+ * the totality of the data when playing with plain text. on
+ * sun.awt.datatransfer.ClipboardTransferable class, now this would not be a big
+ * deal if this were properly documented but it is not, on the abstraction and
+ * the specification is hidden on the "SUN" dreaded package. furthermore the
+ * documentation on this class source is not the best.
+ *
+ * This hybrid pre-fetch/delayed-rendering approach allows us to circumvent the
+ * API restriction(WHICH API????) that client code cannot lock the Clipboard to
+ * discover its formats before requesting data in a particular format, while
+ * avoiding the overhead of fully rendering all data ahead of time. (this does
+ * not seem to be true)
+ *
+ * now up to this point this is passable as what it is doing is gathering the
+ * SYSTEM(OS) (assuming the clipboard is the os /system one) clipboard now the
+ * pre fetching is all good stuff. it MIGHT consume a good chunk of memory. but
+ * might be safer as the content might change if not fetched? then if you call
+ * the transferable getTransferData([whatever]);
+ *
+ * here is where problems might arise. because when the data is text the JDK sun
+ * code will NO MATTER THE FLAVOR take the data, and parse it into a String and
+ * then provide the bytes. is is extremely wasteful and potentially slow. for
+ * one. if I setup a flavor to handle the data as bytes why convert them into
+ * string? if I desire to see the raw data this process will hinder that as it
+ * does conversion via charset. this imagine this: the text is UTF-8 java will
+ * parse to UTF-16, then parse back to UTF-8 and furthermore as a string.
+ * meaning it will waste space on the string pool for that COULD be possibly
+ * CONFIDENTIAL and require secure handling
+ *
+ * now generally speaking. besides the SECURITY problem the other issue is that
+ * i am facing working on this code can hold A LOT of data. and that causes
+ * performance and memory consumptions problems Raymond Chen himself. states
+ * "No, there is no pre-set maximum size for clipboard data. You are limited
+ * only by available memory and address space"
+ *
+ * https://devblogs.microsoft.com/oldnewthing/20220608-00/?p=106727
+ *
+ * so when java pulls the data initially it hast its raw bytes. but upon asking
+ * for something workable. it try's to translate them... is extremely annoying.
+ *
+ * windows nuance:
+ * https://learn.microsoft.com/en-us/windows/win32/dataxchg/clipboard
+ * https://learn.microsoft.com/en-us/windows/win32/dataxchg/using-the-clipboard
+ *
+ *
  * ClipBoardListener defines both Clipboard Thread or runnable class that will
  * process changes from the clipboard the clipboard changes will be listened by
  * the FlavorListener interface. and when detected it will set a trigger for the
  * thread to check and process thus note there might be a significant delay
  * between the time the clipboard changes and the time the thread is able to
  * process the change. NOTE: this class does NOT process the clipboard changes
- * in the EDT.
+ * in the EDT this is intentional as working with the EDT would possible cause a
+ * delay on the UI update. and a irresponsive UI.
  *
  * @see FlavorListener
  * @since 1.2
  * @author Eduardo Vindas
  */
-public class ClipBoardListener implements Runnable, FlavorListener {
+public class ClipBoardListener implements Runnable, FlavorListener, ClipboardOwner {
+    /**
+     * a private class to support the "auto stop" of the service upon VM shutdown
+     */
+    private class ShutdownListener extends Thread {
 
+        ClipBoardListener attachedListener;
+
+        private ShutdownListener(ClipBoardListener theListener) {
+            Objects.requireNonNull(theListener);
+            attachedListener = theListener;
+        }
+
+        public synchronized boolean StoptheService() {
+            if (Objects.isNull(attachedListener)) {
+                return false;
+            }
+            if (attachedListener.isServiceThreadRunning()) {
+                attachedListener.StopClipBoardProcessing();
+                attachedListener.StopClipBoardService();
+            }
+            attachedListener = null;
+            return true;
+        }
+
+        public synchronized boolean softDisengage() {
+            if (Objects.isNull(attachedListener)) {
+                return false;
+            }
+            if (!attachedListener.isServiceThreadRunning() || !attachedListener.isServiceOnline()) {
+                attachedListener = null;
+            }
+            return false;
+        }
+
+        @Override
+        public void run() {
+            if (Objects.nonNull(attachedListener)) {
+                StoptheService();
+            }
+        }
+
+    }
+
+    /**
+     * Internal Name for this Class Logger.
+     */
+    private static final String LOGGERNAME = "ClipBoardListenerLogger";
     /**
      * this is the underline Thread that will be running this service. this
      * Thread can change. as we can stop and restart the service. doing so
@@ -48,13 +188,13 @@ public class ClipBoardListener implements Runnable, FlavorListener {
      * spawn a new one as well as resetting and re attaching the listener to the
      * System Clipboard.
      */
-    private transient Thread backerThread = null;
+    private Thread backerThread = null;
     /**
      * a indicator that tell us the Service state. note: the service state alone
      * does NOT imply the service or thread is completely down. for such review
      * please call {@link ClipBoardListener.}
      */
-    private transient volatile boolean ServiceOnline = false;
+    private volatile boolean ServiceOnline = false;
 
     /**
      * this flag determines if the service should <strong>as it's best
@@ -66,26 +206,54 @@ public class ClipBoardListener implements Runnable, FlavorListener {
      *
      * @see StopClipBoardProcessing()
      */
-    private transient volatile boolean ProcessingTask = false;
+    private volatile boolean ProcessingTask = false;
 
     /**
      * if set request the service to process the Clipboard
      * <strong>regardless</strong>
      * if there is any request booked to be processed.
      */
-    private transient volatile boolean forceProcess = false;
+    private volatile boolean forceProcess = false;
 
     /**
      * an ArrayBlockingQueue that represent the Pending work to be performed by
      * the service. work is en-queued. by the Clipboard Listener.
      */
-    private transient ArrayBlockingQueue<Clipboard> RequestQueue;
+    private ArrayBlockingQueue<Clipboard> RequestQueue;
+    /**
+     * a list that contains the Flavors handlers that are instances that can
+     * handle specific flavor of data. when a change on the Clipboard is to be
+     * process we check this variable and check if they can handle the flavor.
+     * this is a first come first serve list. meaning. that if there are
+     * multiple handlers for the same flavor the one that has registered with
+     * hight priority and is allocated first will process the data.
+     */
+    private final LinkedHashSet<FlavorHandler> FlavorsListPriority;
+    private final HashMap<FlavorProcessor, FlavorHandler> MapProcessors;
 
-    private List<FlavorHandler> FlavorsListPriority;
+    /**
+     * an atomic boolean that indicates if this instance is the owner of the
+     * clipboard.
+     */
+    private final AtomicBoolean Owner = new AtomicBoolean(false);
+
+    /**
+     * a Boolean that determine if we should ignore a Flavor change this is so
+     * we ignore when we retake ownership of the clipboard. as this causes a
+     * trigger on the listener.
+     */
+    private final AtomicBoolean SkipNext = new AtomicBoolean(false);
+
     /**
      * a reference to the system Clipboard
      */
-    private transient static final Clipboard Systemclipboard;
+    private static final Clipboard Systemclipboard;
+    /**
+     * a shutdown listener that run when the VM is shutting down but the service
+     * is up. this is in order to expedite in a safe manner and attempt to do 
+     * a gracious shutdown on the thread. 
+     */
+    private final ShutdownListener Myshutdownlistener;
 
     /**
      * init the System clipboard
@@ -112,10 +280,13 @@ public class ClipBoardListener implements Runnable, FlavorListener {
         if (Systemclipboard == null) {
             throw new HeadlessException("No Clipboard available");
         }
-        // we likely will not need more than 2 elements in the queue. if need
+        // we likely will not need more than 5 elements in the queue. if need
         // be the queue will grow.
-        RequestQueue = new ArrayBlockingQueue<>(2);
-        FlavorsListPriority = new LinkedList<>();
+        RequestQueue = new ArrayBlockingQueue<>(5);
+        FlavorsListPriority = new LinkedHashSet<>();
+        MapProcessors = new HashMap<>();
+        Myshutdownlistener = new ShutdownListener(this);
+        Runtime.getRuntime().addShutdownHook(Myshutdownlistener);
     }
 
     /**
@@ -124,14 +295,14 @@ public class ClipBoardListener implements Runnable, FlavorListener {
      * provide priority to the handlers. the first handler in the list will be
      * the first one to be called. and so on.
      *
-     * @param flavor  the Flavor that we want to handle using the provided
-     *                FlavorProcessor
+     * @param flavor the Flavor that we want to handle using the provided
+     * FlavorProcessor
      * @param handler the FlavorProcessor to register with the provided data
-     *                flavor
+     * flavor
      * @throws IllegalStateException if the service is running or processing
      */
-    public final void addFlavorHandler(DataFlavor flavor, FlavorProcessor handler) {
-        addFlavorHandler(flavor, handler, false);
+    public final void addFlavorHandler(FlavorProcessor handler, DataFlavor... flavors) {
+        addFlavorHandler(handler, false, flavors);
     }
 
     /**
@@ -140,12 +311,12 @@ public class ClipBoardListener implements Runnable, FlavorListener {
      * provide priority to the handlers. the first handler in the list will be
      * the first one to be called. and so on.
      *
-     * @param flavor  the flavor the FlavorProcessor will handle
+     * @param flavor the flavor the FlavorProcessor will handle
      * @param handler the FlavorProcessor to add
      * @throws IllegalStateException if the service is running or processing
      */
-    public final void addPriorityFlavorHandler(DataFlavor flavor, FlavorProcessor handler) {
-        addFlavorHandler(flavor, handler, true);
+    public final void addPriorityFlavorHandler(FlavorProcessor handler, DataFlavor... flavors) {
+        addFlavorHandler(handler, true, flavors);
     }
 
     /**
@@ -159,34 +330,37 @@ public class ClipBoardListener implements Runnable, FlavorListener {
      * @param priority
      * @throws IllegalStateException if the service is running or processing
      */
-    private void addFlavorHandler(DataFlavor flavor, FlavorProcessor handler, boolean priority) {
+    private void addFlavorHandler(FlavorProcessor handler, boolean priority, DataFlavor... flavors) {
         if (isServiceOnline() || isProcessingTask()) {
             throw new IllegalStateException(
                     "Cannot add FlavorHandler while the service is running or processing data.");
         }
         Objects.requireNonNull(handler, "FlavorProcessor cannot be null");
-        Objects.requireNonNull(flavor, "the Flavor cannot be null");
-        // check if the handler is already in the list. if so we will not add it.
-        var containsFlavor = false;
-        for (FlavorHandler flavorHandler : FlavorsListPriority) {
-            if (flavorHandler.getFlavor().equals(flavor)) {
-                containsFlavor = true;
-                break;
-            }
-        }
-        if (containsFlavor) {
+        Objects.requireNonNull(flavors, "the Flavor cannot be null");
+        if (MapProcessors.containsKey(handler)) {
             return;
         }
-        if (FlavorsListPriority instanceof LinkedList<FlavorHandler>) {
-            var itemHandler = new FlavorHandler(flavor, () -> {
-                return !isProcessingTask();
-            }, handler);
-            if (priority) {
-                FlavorsListPriority.addFirst(itemHandler);
-            } else {
-                FlavorsListPriority.add(itemHandler);
-            }
+        var itemHandler = new FlavorHandler(() -> {
+            return !isProcessingTask();
+        }, handler, flavors);
+        MapProcessors.put(handler, itemHandler);
+        if (priority) {
+            FlavorsListPriority.addFirst(itemHandler);
+        } else {
+            FlavorsListPriority.addLast(itemHandler);
         }
+    }
+
+    public boolean RemoveFlavorHandler(FlavorProcessor handler) {
+        if (isServiceOnline() || isProcessingTask()) {
+            throw new IllegalStateException(
+                    "Cannot remove FlavorHandler while the service is running or processing data.");
+        }
+        var tmp = MapProcessors.remove(handler);
+        if (tmp != null) {
+            return FlavorsListPriority.remove(tmp);
+        }
+        return false;
     }
 
     /**
@@ -194,8 +368,8 @@ public class ClipBoardListener implements Runnable, FlavorListener {
      * for Clipboard changes.
      *
      * @return true if the service started false otherwise (the service was
-     *         already running, there are no Clipboard Handlers or otherwise fail to
-     *         init)
+     * already running, there are no Clipboard Handlers or otherwise fail to
+     * init)
      */
     public synchronized boolean StartClipBoardService() {
         // if service alredy running. then we cannot "start it"
@@ -256,7 +430,7 @@ public class ClipBoardListener implements Runnable, FlavorListener {
      * method
      *
      * @return true if the request to stop the service was accepted. false if
-     *         the service was not running.
+     * the service was not running.
      */
     public synchronized boolean StopClipBoardService() {
         if (!ServiceOnline) {
@@ -302,7 +476,7 @@ public class ClipBoardListener implements Runnable, FlavorListener {
      * </ul>
      *
      * @return true if the request was successfully submitted. false if the
-     *         service was not running. or not processing clipboard data.
+     * service was not running. or not processing clipboard data.
      */
     public synchronized boolean StopClipBoardProcessing() {
         if (!ProcessingTask) {
@@ -318,14 +492,11 @@ public class ClipBoardListener implements Runnable, FlavorListener {
      * service has requested to stop please check the {@link isServiceOnline}
      *
      * @apiNote the result from this function is immediately deprecated as the
-     *          service state might change while it is executed.
+     * service state might change while it is executed.
      * @return true if the service Thread is running. false otherwise.
      * @see ServiceOnline
      */
     public boolean isServiceThreadRunning() {
-        if (ServiceOnline && backerThread != null && backerThread.isAlive()) {
-            return ServiceOnline;
-        }
         if (backerThread != null) {
             return backerThread.isAlive();
         }
@@ -340,7 +511,7 @@ public class ClipBoardListener implements Runnable, FlavorListener {
      * function returns true. but the thread is not running.
      *
      * @apiNote the result from this function is immediately deprecated as the
-     *          service state might change while it is executed.
+     * service state might change while it is executed.
      * @return true if the ServiceOnline flag is set to true. false otherwise.
      * @see isServiceThreadRunning
      */
@@ -356,9 +527,9 @@ public class ClipBoardListener implements Runnable, FlavorListener {
      * {@link isServiceThreadRunning} or {@link isServiceOnline}
      *
      * @apiNote the result from this function is immediately deprecated as the
-     *          service state might change while it is executed.
+     * service state might change while it is executed.
      * @return true if the service state is processing data from the clipboard.
-     *         false otherwise.
+     * false otherwise.
      */
     public boolean isProcessingTask() {
         return ProcessingTask;
@@ -373,85 +544,118 @@ public class ClipBoardListener implements Runnable, FlavorListener {
     public void run() {
         while (ServiceOnline) {
             synchronized (this) {
-                // check if we have any clipboard changes to process. other
+                // if we have work pending lets process it instead.
                 if (RequestQueue.isEmpty() && !forceProcess) {
                     try {
-                        // wait for a signal to process the clipboard changes.
+                        //wait until notified that we have work to process.
                         this.wait();
                     } catch (InterruptedException e) {
-                        LoggingHelper.getLogger(ClipBoardListener.class.getName()).log(Level.WARNING,
+                        LoggingHelper.getLogger(LOGGERNAME).log(Level.WARNING,
                                 "Thread Interrupted", e);
                     }
-                    // conclude this iteration. and loop again.
+                    //the thead could have been interupted loop and check
                     continue;
                 }
                 // we will process the clipboard changes.
                 forceProcess = false;// disengage the force process flag.
                 ProcessingTask = true;
             }
-            var clipboard = RequestQueue.poll();
-            if (clipboard == null) {
-                clipboard = Systemclipboard;
-            }
-            // de-queue any other task that might be booked for the same Clipboard
-            // check if empty first as it is faster than peeking, due locking
-            while (!RequestQueue.isEmpty() && clipboard == RequestQueue.peek()) {
-                RequestQueue.poll();
-            }
-            processClipboardChange(clipboard);
+            processClipboardChange(getNextQueuedClip());
             synchronized (this) {
                 ProcessingTask = false;
             }
         }
+
+        Myshutdownlistener.softDisengage();
+        try{
+            Runtime.getRuntime().removeShutdownHook(Myshutdownlistener);
+        }catch(java.lang.IllegalStateException ISE){
+        // this happens if we try to remove a hook while VM is shutting. 
+        // we just absorb the exeption as its fine for this scenario
+        }
+    }
+
+    /**
+     * gathers the next Clipboard resource from the pool. if there is none it
+     * pull the System as it is likely that we were asked to force process the
+     * data from the System Clipboard. (most of the time one and the same)
+     *
+     * @return the clipboard to work with
+     */
+    private Clipboard getNextQueuedClip() {
+        var clipboard = RequestQueue.poll();
+        if (clipboard == null) {
+            clipboard = Systemclipboard;
+        }
+        // de-queue all the instance for the same Clipboard
+        while (!RequestQueue.isEmpty() && clipboard == RequestQueue.peek()) {
+            RequestQueue.poll();
+        }
+        return clipboard;
     }
 
     /**
      * request to process a change on the Clipboard. that was booked into this
-     * service. for the specified Clipboard resource.
+     * service specified Clipboard resource.
      *
      * @param clipboard the clipboard resource to pull the change from
      */
     private void processClipboardChange(Clipboard clipboard) {
-        boolean errorstate;
+        Transferable contents = null;
+        boolean errorstate;//we fail to open the clipboard and read its data?
         int pendingRetry = 3;
         do {
             errorstate = false;
             try {
-                Transferable contents = clipboard.getContents(this);
-                // if a interrupt to the process has been requested bail out.
-                // also if the content of the Clipboard is null we will bail out.
+                //request the clipboard to open and provide the metadata. 
+                contents = clipboard.getContents(this);
+                //the prior call can take a few seconds for exesive ammounts of data on the clipboard so check if we should bail
                 if (Objects.isNull(contents) || !ProcessingTask) {
                     return;
                 }
-                // check if the clipboard has any of the flavors we are interested in.
-                DebugLog(contents);
-                for (FlavorHandler handler : FlavorsListPriority) {
-                    if (!ProcessingTask) {
-                        return;
-                    }
-                    var result = handler.handleFlavor(contents, clipboard);
-                    // we have processed the flavor. we can bail out.
-                    if (result) {
-                        break;
-                    }
-                }
             } catch (IllegalStateException ise) {
-                LoggingHelper.getLogger(ClipBoardListener.class.getName()).log(Level.SEVERE,
+                LoggingHelper.getLogger(LOGGERNAME).log(Level.SEVERE,
                         "Clipboard State Error. Delaying the Procesesing", ise);
                 try {
-                    Thread.sleep(170);
+                    Thread.sleep(100);
                 } catch (InterruptedException ex) {
                 }
-                // only retry if we have not exausted the retry count.
-                // (and yes we decrement post usage)
-                if (pendingRetry-- > 0) {
-                    errorstate = true;
-                }
-            } catch (Exception ex) {
-                LoggingHelper.getLogger(ClipBoardListener.class.getName()).log(Level.SEVERE, "Error reading clipboard",
-                        ex);
+                errorstate = true;
             }
-        } while (errorstate == true);
+        } while (errorstate && pendingRetry-- > 0);
+        try {
+            // if a interrupt to the process has been requested bail out.
+            // also if the content of the Clipboard is null we will bail out.
+            if (Objects.isNull(contents) || !ProcessingTask) {
+                return;
+            }
+            // check if the clipboard has any of the flavors we are interested in.
+            DebugLog(contents);
+            for (FlavorHandler handler : FlavorsListPriority) {
+                if (!ProcessingTask) {
+                    return;
+                }
+                var result = handler.handleFlavor(contents, clipboard);
+                // we have processed the flavor. we can bail out.
+                if (result) {
+                    break;
+                }
+            }
+        } catch (Throwable ex) {
+            LoggingHelper.getLogger(LOGGERNAME)
+                    .log(Level.SEVERE, "Error Has been catch at processClipboardChange", ex);
+        }
+        try {
+            if (Objects.isNull(contents) || !ProcessingTask) {
+                return;
+            }
+            if (!Owner.get()) {
+                regainOwnership(contents);
+            }
+        } catch (IllegalStateException ise) {
+            LoggingHelper.getLogger(LOGGERNAME)
+                    .log(Level.SEVERE, "cannot regain ownership", ise);
+        }
     }
 
     private void DebugLog(Transferable contents) {
@@ -462,12 +666,12 @@ public class ClipBoardListener implements Runnable, FlavorListener {
             if (flavor == null) {
                 continue;
             }
-            LoggingHelper.getLogger(ClipBoardListener.class.getName()).log(Level.INFO, "Flavor: {0}",
-                    flavor.getHumanPresentableName());
-            LoggingHelper.getLogger(ClipBoardListener.class.getName()).log(Level.INFO, "FlavorHandling Class: {0}",
-                    flavor.getDefaultRepresentationClassAsString());
-            LoggingHelper.getLogger(ClipBoardListener.class.getName()).log(Level.INFO, "FlavorMimeType: {0}",
-                    flavor.getMimeType());
+            LoggingHelper.getLogger("Clipboard.Info").log(Level.INFO, "\nFlavor: {0}\nFlavorHandling Class: {1}\nFlavorMimeType: {2}",
+                    new Object[]{
+                        flavor.getHumanPresentableName(),
+                        flavor.getDefaultRepresentationClassAsString(),
+                        flavor.getMimeType()}
+            );
         }
     }
 
@@ -482,12 +686,23 @@ public class ClipBoardListener implements Runnable, FlavorListener {
         // as long as we use the Standar Java this would be called from the EDT
         if (SwingUtilities.isEventDispatchThread()) {
             synchronized (ClipBoardListener.this) {
+                if (SkipNext.get()) {
+                    SkipNext.set(false);
+                    return;
+                }
                 if (ServiceOnline) {
                     if (e.getSource() instanceof Clipboard clipboard) {
                         // we will add the clipboard to the request queue.
-                        RequestQueue.add(clipboard);
-                    } else {
-                        // we will add the system clipboard to the request queue.
+                        if (RequestQueue.isEmpty() || !clipboard.equals(RequestQueue.peek())) {
+                            try {
+                                RequestQueue.add(clipboard);
+                            } catch (IllegalStateException fullExpt) {
+                                LoggingHelper.getLogger(LOGGERNAME)
+                                        .log(Level.WARNING, "Queue is full and all items are different.", fullExpt);
+                                ErrorResearchLog(RequestQueue);
+                            }
+                        }
+                    } else if (RequestQueue.isEmpty() || !Systemclipboard.equals(RequestQueue.peek())) {
                         RequestQueue.add(Systemclipboard);
                     }
                     if (!ProcessingTask) {
@@ -499,6 +714,108 @@ public class ClipBoardListener implements Runnable, FlavorListener {
             throw new NoSuchMethodError("this event should be triggered by the EDT otherwise smells as fabricated.");
         }
 
+    }
+
+    /**
+     * Notifies that this class is not longer the owner of the clipboard. this
+     * happens when another application or another object within this
+     * application asserts ownership of the clipboard.
+     *
+     * @param clipboard the clipboard that is no longer owned
+     * @param contents the contents which this owner had placed on the
+     * {@code clipboard}
+     */
+    @Override
+    public void lostOwnership(Clipboard clipboard, Transferable contents) {
+        LoggingHelper.getLogger(LOGGERNAME).log(Level.INFO, "Clipboard Ownership Loss");
+        Owner.set(false);
+    }
+
+    /**
+     * attempts to regain ownership of the SYSTEM Clipboard.
+     *
+     * @param t Transferable data to set on the clipboard in order to regain
+     * ownership. we suggest to set as the same data that it was originally
+     * there
+     */
+    private void regainOwnership(Transferable t) {
+
+        try {
+            SkipNext.set(true);
+            //if the clipboard has Copious ammount of data.
+            //and we just allow the T to go back it will take
+            //forever to process the data. 
+            //as there are some enconding and reconding that could be happening.
+            //to avoid delays lets Wrap it on one that support faster processing
+            //using Streams. 
+
+            final var UnderlineTrasferible = t;
+            // Create a custom Transferable for byte[] data
+            t = new Transferable() {
+                private final LinkedHashSet<DataFlavor> StreamFlavored = new LinkedHashSet<>();
+
+                private void populateFlavors() {
+                    if (StreamFlavored.isEmpty()) {
+                        //first check if the flavor that is native to the ENV is supported and listed. 
+                        if (UnderlineTrasferible.isDataFlavorSupported(DataFlavor.getTextPlainUnicodeFlavor())) {
+                            StreamFlavored.add(DataFlavor.getTextPlainUnicodeFlavor());
+                        }
+                        //add the rest
+                        for (DataFlavor transferDataFlavor : UnderlineTrasferible.getTransferDataFlavors()) {
+                            if (transferDataFlavor.isRepresentationClassInputStream()
+                                    //exclude plainTextFlavor as this one is REALLLY Slow.
+                                    && !transferDataFlavor.equals(DataFlavor.plainTextFlavor)) {
+                                StreamFlavored.add(transferDataFlavor);
+                            }
+                        }
+                    }
+                }
+
+                @Override
+                public DataFlavor[] getTransferDataFlavors() {
+                    populateFlavors();
+                    return StreamFlavored.toArray(DataFlavor[]::new);
+                }
+
+                @Override
+                public boolean isDataFlavorSupported(DataFlavor flavor) {
+                    populateFlavors();
+                    return StreamFlavored.contains(flavor);
+                }
+
+                @Override
+                public Object getTransferData(DataFlavor flavor) throws IOException, UnsupportedFlavorException {
+                    if (!isDataFlavorSupported(flavor)) {
+                        throw new UnsupportedFlavorException(flavor);
+                    }
+                    return UnderlineTrasferible.getTransferData(flavor);
+                }
+            };
+            //welp...let hope the data is not exesive. 
+            if (t.getTransferDataFlavors().length == 0) {
+                t = UnderlineTrasferible;
+            }
+            Systemclipboard.setContents(t, this);
+            Owner.set(true);
+        } catch (Throwable e) {
+            SkipNext.set(false);
+            LoggingHelper.getLogger(LOGGERNAME).log(Level.WARNING, "Error attempting to Regain Clipboard Ownership", e);
+        }
+    }
+
+    /**
+     * log the information of a rare edge case that is THEORETICALLY possible.
+     *
+     * @param RequestQueue the queue that caused a error adding items into it.
+     */
+    private void ErrorResearchLog(ArrayBlockingQueue<Clipboard> RequestQueue) {
+        LoggingHelper.getLogger(LOGGERNAME).entering(this.getClass().getName(), "ErrorResearchLog");
+        RequestQueue.forEach((clippy) -> {
+            LoggingHelper.getLogger(LOGGERNAME)
+                    .log(Level.INFO, "ErrorResearchLog :: Clipboard {0}, Class {1}",
+                            new Object[]{clippy.getName(), clippy.getClass().getName()});
+        });
+        LoggingHelper.getLogger(LOGGERNAME).exiting(this.getClass().getName(), "ErrorResearchLog");
     }
 
 }

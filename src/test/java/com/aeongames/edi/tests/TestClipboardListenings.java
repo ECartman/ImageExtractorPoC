@@ -95,7 +95,7 @@ public class TestClipboardListenings {
         System.out.println("Running ClipboardSingleTest");
         ClipBoardListener TestingClipboardListener;
         TestingClipboardListener = new ClipBoardListener();
-        TestingClipboardListener.addFlavorHandler(DataFlavor.getTextPlainUnicodeFlavor(),
+        TestingClipboardListener.addFlavorHandler(
                 (flavor, stopProvider, transferData, clipboard) -> {
                     // asure that we are not to stop processing
                     if (stopProvider.isStopSignalReceived()) {
@@ -127,7 +127,7 @@ public class TestClipboardListenings {
                         Logger.getLogger(TestClipboardListenings.class.getName()).log(Level.SEVERE, null, ex);
                     }
                     return false;
-                });
+                },DataFlavor.getTextPlainUnicodeFlavor());
         var result = TestingClipboardListener.StartClipBoardService();
         Assertions.assertTrue(result, "The clipboard service fail to start");
         try {

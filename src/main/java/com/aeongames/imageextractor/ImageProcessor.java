@@ -64,7 +64,7 @@ public class ImageProcessor extends UIChangeNotifier implements FlavorProcessor 
 
     private transient Path SafeLocation;
     private LinkedList<String> Signatures;
-    private static final DataFlavor PROCESSORFLAVOR = DataFlavor.getTextPlainUnicodeFlavor();
+    private static final DataFlavor[] PROCESSORFLAVOR = new DataFlavor[]{DataFlavor.getTextPlainUnicodeFlavor()};
     private MessageDigest Hasher;
 
     /**
@@ -99,7 +99,7 @@ public class ImageProcessor extends UIChangeNotifier implements FlavorProcessor 
      *
      * @return
      */
-    public final DataFlavor mySupportedFlavor() {
+    public final DataFlavor[] mySupportedFlavor() {
         return PROCESSORFLAVOR;
     }
 
@@ -226,12 +226,21 @@ public class ImageProcessor extends UIChangeNotifier implements FlavorProcessor 
         }
         // there should be no way this was modified. at the current implm.
         // however for sake of safety.
-        if (!mySupportedFlavor().equals(flavor)) {
+        if (!mySupportedFlavorSupport(flavor)) {
             return false;
         }
         // assure that the Flavor can be handled Correctly here.
         // and if not return false as we cannot handle.
         return flavor.isRepresentationClassInputStream();
+    }
+
+    private boolean mySupportedFlavorSupport(DataFlavor flavor) {
+        for (DataFlavor dataFlavor : mySupportedFlavor()) {
+            if(dataFlavor!=null && dataFlavor.equals(flavor)){
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -329,27 +338,4 @@ public class ImageProcessor extends UIChangeNotifier implements FlavorProcessor 
                 ? new InputStreamReader(stream)
                 : new InputStreamReader(stream, charEncoding);
     }
-
-    /**
-     * TODO: THIS CODE NEEDS MIGRATION TO THE NEW system.
-     * Base64.getDecoder().decode(base64); } catch (IllegalArgumentException
-     * err) { publish("Data cannot be parsed as Base64 string, Skipping");
-     * return null; } try { var img = ImageIO.read(new
-     * ByteArrayInputStream(bytes)); publish("Image Read."); if
-     * (btauto.isSelected()) { var destinationfolder =
-     * Paths.get(txtfolder.getText()); var filename =
-     * FileSpiner.getModel().getValue().toString() + "." +
-     * (imageType.toLowerCase().contains("png") ? "png" : "jpg");
-     * destinationfolder = destinationfolder.resolve(filename);
-     * ImageIO.write(img, imageType.toLowerCase().contains("png") ? "png" :
-     * "jpg", Files.newOutputStream(destinationfolder,
-     * StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)); publish("the
-     * File " + destinationfolder.toString() + " saved. ");
-     * FileSpiner.getModel().setValue(FileSpiner.getModel().getNextValue()); }
-     * return img; } catch (java.nio.file.FileAlreadyExistsException exists) {
-     * publish("the File alredy exists::" + exists.getMessage()); } catch
-     * (IOException ex) {
-     * Logger.getLogger(ImageExtractor.class.getName()).log(Level.SEVERE, null,
-     * ex);
-     */
 }

@@ -20,7 +20,7 @@ import com.aeongames.edi.utils.ThreadUtils.StopSignalProvider;
 
 public class FlavorHandler {
 
-    private final DataFlavor flavor;
+    private final DataFlavor[] flavors;
     private final FlavorProcessor processor;
     private final StopSignalProvider stopProvider;
 
@@ -29,11 +29,14 @@ public class FlavorHandler {
      *
      * @param flavor the DataFlavor to be handled
      */
-    public FlavorHandler(DataFlavor flavor, StopSignalProvider stopper, FlavorProcessor processor) {
-        Objects.requireNonNull(flavor, "Flavor cannot be null");
-        stopProvider = Objects.requireNonNullElse(stopper, () -> false);
+    public FlavorHandler(StopSignalProvider stopper, FlavorProcessor processor, DataFlavor... flavors) {
+        Objects.requireNonNull(flavors, "Flavor cannot be null");
+        if (flavors.length < 1 || flavors[0] == null) {
+            throw new IllegalStateException("the first element cannot be null");
+        }
+        stopProvider = Objects.requireNonNullElse(stopper, () -> false);//if is null assume there will be no stops
         Objects.requireNonNull(processor, "processor cannot be null");
-        this.flavor = flavor;
+        this.flavors = flavors;
         this.processor = processor;
     }
 
@@ -51,10 +54,17 @@ public class FlavorHandler {
             return false;
         }
         //check if the transferible. supports the flavor that our handle can process
-        if (!transferData.isDataFlavorSupported(flavor)) {
+        DataFlavor FlavorTohandle=null;
+        for (DataFlavor flavor : flavors) {
+            if (transferData.isDataFlavorSupported(flavor)) {
+                FlavorTohandle = flavor;
+                break;
+            }
+        }
+        if (FlavorTohandle == null) {
             return false;
         }
-        return processor.handleFlavor(flavor, stopProvider, transferData, clipboard);
+        return processor.handleFlavor(FlavorTohandle, stopProvider, transferData, clipboard);
     }
 
     /**
@@ -63,7 +73,7 @@ public class FlavorHandler {
      *
      * @return the DataFlavor associated with this FlavorHandler
      */
-    public final DataFlavor getFlavor() {
-        return flavor;
+    public final DataFlavor[] getFlavor() {
+        return flavors;
     }
 }

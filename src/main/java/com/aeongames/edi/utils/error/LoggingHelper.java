@@ -31,6 +31,14 @@ import java.util.logging.XMLFormatter;
 public class LoggingHelper {
 
     /**
+     * private constructor, this class should never have instances
+     * @throws IllegalAccessException as this class cannot be instanced.
+     */
+    private LoggingHelper() throws IllegalAccessException {
+        throw new IllegalAccessException("this Class should not be Instanciated");
+    }
+    
+    /**
      * the File pattern to use when creating the log files.
      */
     public static final String LOG_FILE_PATTERN = "%g.log";
@@ -40,7 +48,8 @@ public class LoggingHelper {
      */
     private static final Map<String, Logger> StrongReferences = new HashMap<>();
     /**
-     * a boolean that indicates if the folder for the logs was review and created or not.
+     * a boolean that indicates if the folder for the logs was review and
+     * created or not.
      */
     private static boolean FolderChecked = false;
     /**
@@ -71,6 +80,7 @@ public class LoggingHelper {
             return LoggerforID;
         }
         LoggerforID = Logger.getLogger(LogID);
+        LoggerforID.setLevel(Level.ALL);
         ensureErrorFolderExists();
         if (isLoggingIntoFile(LoggerforID)) {
             StrongReferences.put(LogID, LoggerforID);
@@ -86,8 +96,8 @@ public class LoggingHelper {
     }
 
     /**
-     * checks if the folder for the logs exists and if not it creates it.
-     * the whole process is skipped if {@code FolderChecked} is true.
+     * checks if the folder for the logs exists and if not it creates it. the
+     * whole process is skipped if {@code FolderChecked} is true.
      */
     private static void ensureErrorFolderExists() {
         if (FolderChecked) {
@@ -106,6 +116,7 @@ public class LoggingHelper {
 
     /**
      * checks if the provided logger is logging into a file or not.
+     *
      * @param test the logger to check
      * @return true if the logger is logging into a file, false otherwise.
      */
@@ -120,12 +131,13 @@ public class LoggingHelper {
 
     /**
      * checks if the application is running in debug mode or not.
+     *
      * @return whenever the application is running in debug mode or not.
      */
     public static boolean RunningInDebugMode() {
         var propertyDebug = Boolean.getBoolean("debug.mode") || Boolean.getBoolean("debug");
         var isDebug = java.lang.management.ManagementFactory.getRuntimeMXBean().
-                getInputArguments().toString().indexOf("jdwp") >= 0;
+                getInputArguments().toString().contains("jdwp");
         return propertyDebug || isDebug;
     }
 
