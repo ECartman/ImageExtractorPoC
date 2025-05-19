@@ -26,39 +26,30 @@ import javax.swing.text.JTextComponent;
  *
  * @author Eduardo Vindas
  */
-public class JtextComponentAppendUpdateBind extends BaseSwingBind<String, JTextComponent> {
+public class JtextComponentAppendUpdateBind extends CachedSwingBind<String, JTextComponent> {
 
     public JtextComponentAppendUpdateBind(JTextComponent component, ListenableProperty<String> pojo) {
         super(component, pojo);
     }
 
-    /**
-     * return the Text of this property.or null if not found.
-     *
-     * @return the value currently holding on the UI. null if none.
-     */
     @Override
-    public String getUIValue() {
-        return WrappedComponent.getText();
+    protected void BindUIListener(JTextComponent Component) {
+         //we dont need to Unbound. 
     }
 
     @Override
-    protected void BindUIListener() {
-        //we dont need to bind the UI. we wont Listen to changes from UI. 
-    }
-
-    @Override
-    protected void UnboundUIListener() {
+    protected void UnboundUIListener(JTextComponent Component) {
         //we dont need to Unbound. 
     }
 
-    /**
-     * we don't set the value. we APPEND the value.
-     * @param newValue
-     */
     @Override
-    protected void setTheUIValue(String newValue) {
-        var doc = WrappedComponent.getDocument();
+    protected String getUIValueFor(JTextComponent component) {
+       return component.getText();
+    }
+
+    @Override
+    protected void setTheUIValue(JTextComponent Component, String newValue) {
+        var doc = Component.getDocument();
         try {
             doc.insertString(doc.getLength(), newValue, null);
         } catch (BadLocationException ex) {

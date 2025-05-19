@@ -781,7 +781,10 @@ public final class ClipboardService implements Runnable, FlavorListener, Clipboa
      * there
      */
     private void regainOwnership(Transferable t) {
-
+        //this method is REALLY bad. I am tempted to add JNA just to use a better method 
+        //to ensure we can track clipboard changes more efficiently and Fast. 
+        //this method consume too much CPU due copy data from JAVA type to Native 
+        //and the SUN implementation REALLY struggles when data is ~40mb or more. 
         try {
             SkipNext.set(true);
             //if the clipboard has Copious ammount of data.

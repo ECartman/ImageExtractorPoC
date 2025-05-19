@@ -67,12 +67,12 @@ public abstract class TriggerHappyListenableProperty<T> implements ListenablePro
     }
 
     @Override
-    public final void addPropertyListener(PropertyChangeListener<T, ListenableProperty<T>> Listener) {
+    public synchronized final void addPropertyListener(PropertyChangeListener<T, ListenableProperty<T>> Listener) {
         listeners.add(Listener);
     }
 
     @Override
-    public final void RemovePropertyListener(PropertyChangeListener<T, ListenableProperty<T>> Listener) {
+    public synchronized final void RemovePropertyListener(PropertyChangeListener<T, ListenableProperty<T>> Listener) {
         listeners.remove(Listener);
     }
 }

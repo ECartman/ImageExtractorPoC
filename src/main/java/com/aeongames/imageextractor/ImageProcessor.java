@@ -182,7 +182,7 @@ public class ImageProcessor implements FlavorProcessor {
             // Step 3: Check if the header contains the expected pattern
             if (header.startsWith("data:image/")) {
                 int lastCharofHeader = header.indexOf(",");
-                imageType = header.substring(10, lastCharofHeader);
+                imageType = header.substring(11, lastCharofHeader);
                 InfoLink.ImageTypeString.setValue(imageType);
                 header = header.substring(lastCharofHeader + 1); // Extract the Base64 part                
                 // Step 4: Push back the remaining bytes

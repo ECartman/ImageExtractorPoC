@@ -9,7 +9,6 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  * 
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
 package com.aeongames.edi.utils.visual.UIlink;
 
@@ -17,22 +16,32 @@ import com.aeongames.edi.utils.Pojo.ListenableProperty;
 import com.aeongames.edi.utils.Pojo.PropertyChangeListener;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import javax.swing.JComponent;
 import javax.swing.SwingUtilities;
 
 /**
- * the Base Class to Bind a Visual Component to the ListenableProperty Pojo.
- * this define the basic functionality required this to work
- * this Base implementation only allows a 1:0, 0:1 or 1:1 binding. 
- * meaning that it can bind from one side to the other. or Two way update. 
- * but does NOT support 1:N 
- * for that please refer to  
+ * the Base Class to Bind a Visual Component to the ListenableProperty POJO.
+ * this define the basic functionality required this to work this Base
+ * implementation only allows a 1:0, 0:1 or 1:1 binding. meaning that it can
+ * bind from one side to the other. or Two way update. but does NOT support 1:N
+ * for that please refer to
  *
- * @author cartman
+ * @author Eduardo Vindas
  */
 abstract class BaseSwingBind<T, C extends JComponent> implements SwingComponentBind<T, C>, PropertyChangeListener<T, ListenableProperty<T>> {
 
+    private final ReentrantReadWriteLock ChangeLock = new ReentrantReadWriteLock(true);
+    /**
+     * allow us to know if the value is mutating from the UI (changing) and if
+     * so we should avoid change it again (due possible recursion and avoid
+     * deadlocks)
+     */
     private final AtomicBoolean MutatingProperty = new AtomicBoolean(false);
+    /**
+     * this boolean allow us to determine if the value has changed. but is yet
+     * to be updated into the UI due delays on the UI thread
+     */
     private final AtomicBoolean PendingUpdate = new AtomicBoolean(false);
     protected final C WrappedComponent;
     private final ListenableProperty<T> BoundPojo;
@@ -137,11 +146,11 @@ abstract class BaseSwingBind<T, C extends JComponent> implements SwingComponentB
     }
 
     /**
-     * call this function to update the POJO with the current value from the 
-     * UI. 
-     * thus function does some checkup for Concurrency and recurrence(as can lead to issues) 
-     * then check if the value has not changed via {@link #getUIValue()} 
-     * and if different calls the {@link ListenableProperty#updateProperty(java.lang.Object) }
+     * call this function to update the POJO with the current value from the UI.
+     * thus function does some checkup for Concurrency and recurrence(as can
+     * lead to issues) then check if the value has not changed via
+     * {@link #getUIValue()} and if different calls the {@link ListenableProperty#updateProperty(java.lang.Object)
+     * }
      */
     protected final void updatePojo() {
         //if WE are setting the value we should not notify back otherwise 
@@ -167,27 +176,28 @@ abstract class BaseSwingBind<T, C extends JComponent> implements SwingComponentB
         if (!Objects.equals(BoundPojo, source)) {
             return;
         }
-        MutatingProperty.set(true);
-        setTheUIValue(BoundPojo.getValue());
-        PendingUpdate.set(false);
-        MutatingProperty.set(false);
+        synchronized (BoundPojo) {
+            MutatingProperty.set(true);
+            setTheUIValue(BoundPojo.getValue());
+            PendingUpdate.set(false);
+            MutatingProperty.set(false);
+        }
     }
 
     protected abstract void setTheUIValue(T newValue);
-    
+
     /**
      * Runs the code that is necessary to bound the Specific UI class to this
      * class to listen or trigger when a change is made on the UI. this is
      * highly relative on the component or desired Property to Listen
      */
     protected abstract void BindUIListener();
-    
+
     /**
      * this function is called to Unbound the Listener of the UI to this class.
      * this is done when the class is not longer required to listen or trigger
      * data.
      */
     protected abstract void UnboundUIListener();
-
 
 }
