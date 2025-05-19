@@ -9,26 +9,25 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  * 
- * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
  */
 package com.aeongames.imageextractor;
 
 import com.aeongames.edi.utils.Clipboard.ClipboardService;
-import java.awt.image.BufferedImage;
-import java.io.IOException;
+import com.aeongames.edi.utils.Pojo.StringPropertyPojo;
+import com.aeongames.edi.utils.visual.UIlink.JtextComponentAppendUpdateBind;
+import com.aeongames.edi.utils.visual.UIlink.MCBoolEditableBind;
+import com.aeongames.imageextractor.Pojo.ProcessingInformationDisplay;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.security.NoSuchAlgorithmException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.imageio.ImageIO;
 import javax.swing.JFileChooser;
 
 /**
  *
- * @author cartman
+ * @author Eduardo Vindas
  */
 public class ImageExtractor extends javax.swing.JFrame {
 
@@ -36,16 +35,15 @@ public class ImageExtractor extends javax.swing.JFrame {
     private final ImageProcessor MyProcessor;
 
     /**
-     * Creates new form ToolBase
-     *
+     * create a new Frame.that will be display on the OS. 
      * @throws java.security.NoSuchAlgorithmException
      */
     public ImageExtractor() throws NoSuchAlgorithmException {
         initComponents();
-        var safePath=Paths.get(System.getProperty("user.home"), "Downloads");
-        txtfolder.setText(safePath.toString());        
+        var safePath = Paths.get(System.getProperty("user.home"), "Downloads");
+        txtfolder.setText(safePath.toString());
         MyProcessor = new ImageProcessor(safePath);
-        MainListener = ClipboardService.getCliboardService();
+        MainListener = ClipboardService.getClipboardService();
         initListener();
     }
 
@@ -58,57 +56,43 @@ public class ImageExtractor extends javax.swing.JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        jLabel1 = new javax.swing.JLabel();
-        jLabel2 = new javax.swing.JLabel();
-        FileSpiner = new javax.swing.JSpinner();
         PImage = new com.aeongames.edi.utils.visual.Panels.ImagePanel();
-        btauto = new javax.swing.JToggleButton();
-        btProcessdata = new javax.swing.JButton();
         txtstatusbar = new javax.swing.JLabel();
-        jScrollPane1 = new javax.swing.JScrollPane();
-        txtlistenedData = new javax.swing.JTextArea();
+        PBstate = new javax.swing.JProgressBar();
+        translucentPanel1 = new com.aeongames.edi.utils.visual.Panels.TranslucentPanel();
+        jLabel5 = new javax.swing.JLabel();
+        FileSpiner = new javax.swing.JSpinner();
         jLabel3 = new javax.swing.JLabel();
-        txtImageType = new javax.swing.JLabel();
-        btsave = new javax.swing.JButton();
         jLabel4 = new javax.swing.JLabel();
         txtfolder = new javax.swing.JTextField();
-        btautodecript = new javax.swing.JToggleButton();
-        PBstate = new javax.swing.JProgressBar();
+        btsave = new javax.swing.JButton();
+        txtImageType = new javax.swing.JLabel();
+        jScrollPane2 = new javax.swing.JScrollPane();
+        txtlistenedData = new com.aeongames.edi.utils.visual.TranslucentTextArea();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-
-        jLabel1.setText("Detected Information:");
-
-        jLabel2.setText("Start Image ID:");
-
-        FileSpiner.setModel(new javax.swing.SpinnerNumberModel(226, 0, null, 1));
+        setMinimumSize(new java.awt.Dimension(400, 700));
 
         javax.swing.GroupLayout PImageLayout = new javax.swing.GroupLayout(PImage);
         PImage.setLayout(PImageLayout);
         PImageLayout.setHorizontalGroup(
             PImageLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 0, Short.MAX_VALUE)
+            .addGap(0, 483, Short.MAX_VALUE)
         );
         PImageLayout.setVerticalGroup(
             PImageLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 320, Short.MAX_VALUE)
+            .addGap(0, 329, Short.MAX_VALUE)
         );
-
-        btauto.setSelected(true);
-        btauto.setText("Auto-Save");
-
-        btProcessdata.setText("Decript");
 
         txtstatusbar.setText("Ready");
 
-        txtlistenedData.setColumns(20);
-        txtlistenedData.setLineWrap(true);
-        txtlistenedData.setRows(5);
-        jScrollPane1.setViewportView(txtlistenedData);
+        jLabel5.setText("Current Page:");
+
+        FileSpiner.setModel(new javax.swing.SpinnerNumberModel(226, 0, null, 1));
 
         jLabel3.setText("Image Type:");
 
-        txtImageType.setText("None");
+        jLabel4.setText("Save Folder: ");
 
         btsave.setText("Set Save Folder");
         btsave.addActionListener(new java.awt.event.ActionListener() {
@@ -117,68 +101,77 @@ public class ImageExtractor extends javax.swing.JFrame {
             }
         });
 
-        jLabel4.setText("Save Folder: ");
+        txtImageType.setText("None");
 
-        btautodecript.setText("Auto-Decript");
+        jScrollPane2.setOpaque(false);
+        jScrollPane2.getViewport().setOpaque(false);
+
+        txtlistenedData.setColumns(20);
+        txtlistenedData.setRows(5);
+        jScrollPane2.setViewportView(txtlistenedData);
+
+        javax.swing.GroupLayout translucentPanel1Layout = new javax.swing.GroupLayout(translucentPanel1);
+        translucentPanel1.setLayout(translucentPanel1Layout);
+        translucentPanel1Layout.setHorizontalGroup(
+            translucentPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(translucentPanel1Layout.createSequentialGroup()
+                .addGroup(translucentPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(translucentPanel1Layout.createSequentialGroup()
+                        .addComponent(jLabel4)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(txtfolder)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(btsave))
+                    .addGroup(translucentPanel1Layout.createSequentialGroup()
+                        .addContainerGap()
+                        .addComponent(jLabel5)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(FileSpiner, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(jLabel3)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(txtImageType, javax.swing.GroupLayout.PREFERRED_SIZE, 52, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(0, 0, Short.MAX_VALUE)))
+                .addContainerGap())
+            .addComponent(jScrollPane2, javax.swing.GroupLayout.Alignment.TRAILING)
+        );
+        translucentPanel1Layout.setVerticalGroup(
+            translucentPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(translucentPanel1Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(translucentPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel5)
+                    .addComponent(FileSpiner, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel3)
+                    .addComponent(txtImageType))
+                .addGap(18, 18, 18)
+                .addGroup(translucentPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel4)
+                    .addComponent(txtfolder, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(btsave))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jScrollPane2))
+        );
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addComponent(PImage, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-            .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jLabel1)
-                    .addComponent(jLabel2))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jScrollPane1)
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(FileSpiner, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(btauto)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(btautodecript)
-                        .addGap(18, 18, 18)
-                        .addComponent(btProcessdata)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jLabel3)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(txtImageType)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jLabel4)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(txtfolder)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(btsave))))
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addComponent(PBstate, javax.swing.GroupLayout.PREFERRED_SIZE, 60, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(PBstate, javax.swing.GroupLayout.PREFERRED_SIZE, 86, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(txtstatusbar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+            .addComponent(translucentPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jLabel1)
-                    .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(5, 5, 5)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel2)
-                    .addComponent(FileSpiner, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(btauto)
-                    .addComponent(btProcessdata)
-                    .addComponent(jLabel3)
-                    .addComponent(txtImageType)
-                    .addComponent(jLabel4)
-                    .addComponent(txtfolder, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(btsave)
-                    .addComponent(btautodecript))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGap(0, 0, 0)
                 .addComponent(PImage, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGap(0, 0, 0)
+                .addComponent(translucentPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(0, 0, 0)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                     .addComponent(txtstatusbar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(PBstate, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
@@ -189,13 +182,14 @@ public class ImageExtractor extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void SetControlsEnablement(boolean enabled) {
+        /*
         txtlistenedData.setEditable(enabled);
         txtlistenedData.setEnabled(enabled);
         btProcessdata.setEnabled(enabled);
         btsave.setEnabled(enabled);
         btauto.setEnabled(enabled);
         btautodecript.setEnabled(enabled);
-        PBstate.setIndeterminate(!enabled);
+        PBstate.setIndeterminate(!enabled);*/
     }
 
 
@@ -251,28 +245,46 @@ public class ImageExtractor extends javax.swing.JFrame {
     private javax.swing.JSpinner FileSpiner;
     private javax.swing.JProgressBar PBstate;
     private com.aeongames.edi.utils.visual.Panels.ImagePanel PImage;
-    private javax.swing.JButton btProcessdata;
-    private javax.swing.JToggleButton btauto;
-    private javax.swing.JToggleButton btautodecript;
     private javax.swing.JButton btsave;
-    private javax.swing.JLabel jLabel1;
-    private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
-    private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JLabel jLabel5;
+    private javax.swing.JScrollPane jScrollPane2;
+    private com.aeongames.edi.utils.visual.Panels.TranslucentPanel translucentPanel1;
     private javax.swing.JLabel txtImageType;
     private javax.swing.JTextField txtfolder;
-    private javax.swing.JTextArea txtlistenedData;
+    private com.aeongames.edi.utils.visual.TranslucentTextArea txtlistenedData;
     private javax.swing.JLabel txtstatusbar;
     // End of variables declaration//GEN-END:variables
 
     private void initListener() {
-        if(MainListener.isProcessingTask() || MainListener.isServiceOnline()){
+        var ProcessingInformationDisplay = new ProcessingInformationDisplay();
+        ProcessingInformationDisplay.CurrentUIEnablement.setValue(true);
+        MCBoolEditableBind binding = new MCBoolEditableBind(txtfolder, ProcessingInformationDisplay.CurrentUIEnablement);
+        binding.addComponent(txtlistenedData);
+
+        if (MainListener.isProcessingTask() || MainListener.isServiceOnline()) {
             //we cannot add as the service is online 
             return;
         }
-        MainListener.addFlavorHandler(MyProcessor,MyProcessor.mySupportedFlavor());
+        MainListener.addFlavorHandler(MyProcessor, MyProcessor.mySupportedFlavor());
         MainListener.StartClipBoardService();
+
+        StringPropertyPojo StatusProperty = new StringPropertyPojo();
+        var glue = new JtextComponentAppendUpdateBind(txtlistenedData, StatusProperty);
+
+        new Thread(() -> {
+            while (true) {
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException ex) {
+                    Logger.getLogger(ImageExtractor.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                ProcessingInformationDisplay.CurrentUIEnablement.setValue(!ProcessingInformationDisplay.CurrentUIEnablement.getValue());
+                
+            }
+        }).start();
+
         //TODO we need a way to update the UI
         //SetControlsEnablement(false);
         /*
@@ -280,18 +292,6 @@ public class ImageExtractor extends javax.swing.JFrame {
             txtstatusbar.setText(chunks.getLast());
             }
          */
-    }
-
-    private String ProcessImageToFile(BufferedImage img, String imageType) throws IOException {
-        if (btauto.isSelected()) {
-            var destinationfolder = Paths.get(txtfolder.getText());
-            var filename = FileSpiner.getModel().getValue().toString() + "." + (imageType.toLowerCase().contains("png") ? "png" : "jpg");
-            destinationfolder = destinationfolder.resolve(filename);
-            ImageIO.write(img, imageType.toLowerCase().contains("png") ? "png" : "jpg", Files.newOutputStream(destinationfolder, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE));
-            FileSpiner.getModel().setValue(FileSpiner.getModel().getNextValue());
-            return "the File " + destinationfolder.toString() + " saved. ";
-        }
-        return "";
     }
 
 }

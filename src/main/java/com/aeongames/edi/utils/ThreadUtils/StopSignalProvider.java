@@ -1,4 +1,3 @@
-package com.aeongames.edi.utils.ThreadUtils;
 /* 
  *  Copyright © 2025 Eduardo Vindas Cordoba. All rights reserved.
  *  
@@ -10,7 +9,13 @@ package com.aeongames.edi.utils.ThreadUtils;
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  */
+package com.aeongames.edi.utils.ThreadUtils;
 
+/**
+ * a functional interface to check of the current execution should halt and the 
+ * function that is checking should return as soon as possible. 
+ * @author Eduardo Vindas
+ */
 @FunctionalInterface
 public interface StopSignalProvider {
     /**

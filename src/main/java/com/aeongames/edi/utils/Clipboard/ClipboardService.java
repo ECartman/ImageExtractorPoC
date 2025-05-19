@@ -40,7 +40,7 @@ import javax.swing.SwingUtilities;
  * data (and do note that the clipboard has no limit on the amount of data it
  * could hold is best to use a stream. as a Stream remove some overhead from
  * other ways. and provide a finer Control unfortunately it still imply some
- * overhead. due char Enconding. according to the JDK code at
+ * overhead. due char Encoding. according to the JDK code at
  * <code>DataTransfer.translateBytes</code> Target data is an InputStream. For
  * arbitrary flavors, just return // the raw bytes. For text flavors, decode to
  * strip terminators and // search-and-replace EOLN, then <Strong>re
@@ -122,20 +122,33 @@ import javax.swing.SwingUtilities;
  *
  */
 /**
- * ClipBoardListener defines both Clipboard Thread or runnable class that will
- * process changes from the clipboard the clipboard changes will be listened by
- * the FlavorListener interface. and when detected it will set a trigger for the
- * thread to check and process thus note there might be a significant delay
- * between the time the clipboard changes and the time the thread is able to
- * process the change. NOTE: this class does NOT process the clipboard changes
- * in the EDT this is intentional as working with the EDT would possible cause a
- * delay on the UI update. and a irresponsive UI.
- *
+ * ClipboardService defines a service or background (thread/runnable) that will
+ * await and process changes from the system clipboard.<br> 
+ * The clipboard changes will be listened by the service own interface (itself)
+ * ({@link FlavorListener}). and when detected it will set a trigger for the service
+ * thread to check and process, thus note there might be a delay between the time
+ * the clipboard changes and the time the thread is able to process the change. 
+ * <br>
+ * NOTE: this class does NOT process the clipboard changes in the EDT,
+ * this is intentional as per design, as working with the EDT would cause
+ * irresponsive UI, or delays
+ * <br>
+ * this service by itself does not handle the data. the interested need to register
+ * a {@link FlavorProcessor} and register using 
+ * {@link ClipboardService#addFlavorHandler(com.aeongames.edi.utils.Clipboard.FlavorProcessor, java.awt.datatransfer.DataFlavor...) }
+ * or
+ * {@link ClipboardService#addPriorityFlavorHandler(com.aeongames.edi.utils.Clipboard.FlavorProcessor, java.awt.datatransfer.DataFlavor...) }
+ * once register the service will call this interface to handle the clipboard data.
+ * <br>
+ * NOTE: a Clipboard Event will be consider handled when the first possible Handler
+ * reports that it has successfully handled the event. and no other listener will
+ * be called, it allow to register multiple handlers. (sort of a hybrid Unicast event)
  * @see FlavorListener
+ * @see FlavorProcessor
  * @since 1.2
  * @author Eduardo Vindas
  */
-public class ClipboardService implements Runnable, FlavorListener, ClipboardOwner {
+public final class ClipboardService implements Runnable, FlavorListener, ClipboardOwner {
 
     //<editor-fold defaultstate="collapsed" desc="Statics">
     /**
@@ -154,9 +167,9 @@ public class ClipboardService implements Runnable, FlavorListener, ClipboardOwne
     static {
         Clipboard tmp = null;
         try {
-            // we will use the system clipboard.
             tmp = Toolkit.getDefaultToolkit().getSystemClipboard();
         } catch (HeadlessException e) {
+            //there is no UI or our enviroment is Really contrained.
         }
         SYSTEM_CLIPBOARD = tmp;
     }
@@ -178,41 +191,53 @@ public class ClipboardService implements Runnable, FlavorListener, ClipboardOwne
      * does NOT imply the service or thread is completely down. for such review
      * please call {@link ClipBoardListener.}
      */
-    private volatile boolean ServiceOnline = false;
+    private volatile boolean serviceOnline = false;
 
     /**
-     * this flag determines if the service should <strong>as it's best
-     * effort</strong>
-     * top processing data. this flag is to be check for each task that could
-     * take long to process data. in order to ensure responsiveness. However we
-     * not the implementer of delegated task should held accountable if it hang
-     * the execution. but be aware is bad practice to do so.
+     * this flag defines if the thread should continue processing the Clipboard
+     * data if set to false it will try <strong>as best effort</strong> to stop
+     * processing data. this flag is to be check for each task that could take
+     * long to process data, for example if reading a stream it should
+     * periodically check and it set to false. exit the loop reading the stream.
+     * in order to ensure responsiveness. However we nor the implementer of
+     * delegated task should held accountable if it hang the execution. but be
+     * aware is bad practice to do so.
      *
      * @see StopClipBoardProcessing()
      */
-    private volatile boolean ProcessingTask = false;
+    private volatile boolean processingData = false;
 
     /**
      * if set request the service to process the Clipboard
      * <strong>regardless</strong>
      * if there is any request booked to be processed.
      */
-    private volatile boolean forceProcess = false;
+    private volatile boolean forceProcess = false; //TODO: remove or implement functionality to trigger a request for processing on demand
 
     /**
      * an ArrayBlockingQueue that represent the Pending work to be performed by
      * the service. work is en-queued. by the Clipboard Listener.
      */
     private ArrayBlockingQueue<Clipboard> RequestQueue;
+
     /**
-     * a list that contains the Flavors handlers that are instances that can
-     * handle specific flavor of data. when a change on the Clipboard is to be
-     * process we check this variable and check if they can handle the flavor.
-     * this is a first come first serve list. meaning. that if there are
+     * a list of unique values. that contains the Flavors handlers that are
+     * instances that can handle specific flavor(s) of data. from the clipboard.
+     * <br>
+     * when a change on the Clipboard is to be handled the list (in order) and
+     * check for each handler if they are fit to handle the flavor.
+     * <br>
+     * this process runs in "first come first serve". meaning. that if there are
      * multiple handlers for the same flavor the one that has registered with
-     * hight priority and is allocated first will process the data.
+     * hight priority(first encountered on the list) and is allocated first will
+     * process the data.
      */
     private final LinkedHashSet<FlavorHandler> FlavorsListPriority;
+    /**
+     * a mapping for the {@code FlavorHandler} that wrap a
+     * {@code FlavorProcessor} this is required for ease of adding or removing
+     * handlers
+     */
     private final HashMap<FlavorProcessor, FlavorHandler> MapProcessors;
 
     /**
@@ -229,9 +254,8 @@ public class ClipboardService implements Runnable, FlavorListener, ClipboardOwne
     private final AtomicBoolean SkipNext = new AtomicBoolean(false);
 
     /**
-     * a shutdown listener that run when the VM is shutting down but the service
-     * is up. this is in order to expedite in a safe manner and attempt to do a
-     * gracious shutdown on the thread.
+     * a listener for Shutdown. we register it to be able at a best effort to
+     * gracefully. shutdown this service.
      */
     private final ShutdownListener Myshutdownlistener;
     //</editor-fold>
@@ -244,7 +268,7 @@ public class ClipboardService implements Runnable, FlavorListener, ClipboardOwne
      *
      * @return a instance of {@code ClipboardService}
      */
-    public static final ClipboardService getCliboardService() {
+    public static final ClipboardService getClipboardService() {
         if (Objects.isNull(Singleton_Instance)) {
             Singleton_Instance = new ClipboardService();
         }
@@ -271,6 +295,25 @@ public class ClipboardService implements Runnable, FlavorListener, ClipboardOwne
         Myshutdownlistener = new ShutdownListener(this);
     }
 
+    /**
+     * Resets the Service State Variables.
+     */
+    private synchronized void resetValues() {
+        processingData = false;
+        forceProcess = false;
+        if (!Myshutdownlistener.CanEngage()) {
+            Myshutdownlistener.reset(this);
+        }
+        try {
+            Runtime.getRuntime().addShutdownHook(Myshutdownlistener);
+        } catch (Throwable err) {
+            LoggingHelper.getLogger(LOGGERNAME).log(Level.SEVERE, "wait to hook the shutdown", err);
+        }
+        // this should be overkill.
+        RequestQueue.clear();
+    }
+
+    //<editor-fold defaultstate="collapsed" desc="Add/Remove Handlers">
     /**
      * Add a FlavorHandler to the list of handlers at the end of the list if no
      * prioritized otherwise add it at the start. NOTE: the order of the
@@ -304,24 +347,6 @@ public class ClipboardService implements Runnable, FlavorListener, ClipboardOwne
         } else {
             FlavorsListPriority.addLast(itemHandler);
         }
-    }
-    
-    /**
-     * Resets the Service State Variables.
-     */
-    private synchronized void resetValues() {
-        ProcessingTask = false;
-        forceProcess = false;
-        if (!Myshutdownlistener.CanEngage()) {
-            Myshutdownlistener.reset(this);
-        }
-        try {
-            Runtime.getRuntime().addShutdownHook(Myshutdownlistener);
-        } catch (Throwable err) {
-            LoggingHelper.getLogger(LOGGERNAME).log(Level.SEVERE, "wait to hook the shutdown", err);
-        }
-        // this should be overkill.
-        RequestQueue.clear();
     }
 
     /**
@@ -363,10 +388,10 @@ public class ClipboardService implements Runnable, FlavorListener, ClipboardOwne
      * <li>the service is <strong>Not</strong> processing data</li>
      * </ul>
      *
-     * @param handler the {@code FlavorProcessor} to be excluded. 
-     * @return true if item was removed false otherwise. 
-     * @throws IllegalStateException if the Service is currently processing data or
-     * is online.
+     * @param handler the {@code FlavorProcessor} to be excluded.
+     * @return true if item was removed false otherwise.
+     * @throws IllegalStateException if the Service is currently processing data
+     * or is online.
      */
     public synchronized boolean RemoveFlavorHandler(FlavorProcessor handler) {
         if (isServiceOnline() || isProcessingTask()) {
@@ -379,7 +404,9 @@ public class ClipboardService implements Runnable, FlavorListener, ClipboardOwne
         }
         return false;
     }
+    //</editor-fold>
 
+    //<editor-fold defaultstate="collapsed" desc="Start/Stop Service">
     /**
      * Start The Clipboard Service. this will start the thread that will await
      * for Clipboard changes.
@@ -390,7 +417,7 @@ public class ClipboardService implements Runnable, FlavorListener, ClipboardOwne
      */
     public synchronized boolean StartClipBoardService() {
         // if service alredy running. then we cannot "start it"
-        if (ServiceOnline) {
+        if (serviceOnline) {
             return false;
         }
         if (FlavorsListPriority.isEmpty()) {
@@ -420,7 +447,7 @@ public class ClipboardService implements Runnable, FlavorListener, ClipboardOwne
          * possible.
          */
 
-        ServiceOnline = true;
+        serviceOnline = true;
         backerThread = new Thread(this, "ClipBoardListenerThread");
         SYSTEM_CLIPBOARD.addFlavorListener(this);
         backerThread.setDaemon(true);
@@ -441,10 +468,10 @@ public class ClipboardService implements Runnable, FlavorListener, ClipboardOwne
      * the service was not running.
      */
     public synchronized boolean StopClipBoardService() {
-        if (!ServiceOnline) {
+        if (!serviceOnline) {
             return false;
         }
-        ServiceOnline = false;
+        serviceOnline = false;
         // we will stop the thread that will process the clipboard changes.
         SYSTEM_CLIPBOARD.removeFlavorListener(this);
         RequestQueue.clear();
@@ -487,22 +514,24 @@ public class ClipboardService implements Runnable, FlavorListener, ClipboardOwne
      * service was not running. or not processing clipboard data.
      */
     public synchronized boolean StopClipBoardProcessing() {
-        if (!ProcessingTask) {
+        if (!processingData) {
             return false;
         }
-        ProcessingTask = false;
+        processingData = false;
         return true;
     }
+    //</editor-fold>
 
+    //<editor-fold defaultstate="collapsed" desc="Status methods">
     /**
-     * Check if the Thread backing this Service is running. the service might be
+     * Check if the Thread backing this Service is running.the service might be
      * set to stop. but the thread might still be running. to check if the
      * service has requested to stop please check the {@link isServiceOnline}
      *
      * @apiNote the result from this function is immediately deprecated as the
      * service state might change while it is executed.
      * @return true if the service Thread is running. false otherwise.
-     * @see ServiceOnline
+     * @see ServiceOnline#serviceOnline
      */
     public boolean isServiceThreadRunning() {
         if (backerThread != null) {
@@ -524,7 +553,7 @@ public class ClipboardService implements Runnable, FlavorListener, ClipboardOwne
      * @see isServiceThreadRunning
      */
     public boolean isServiceOnline() {
-        return ServiceOnline;
+        return serviceOnline;
     }
 
     /**
@@ -540,9 +569,10 @@ public class ClipboardService implements Runnable, FlavorListener, ClipboardOwne
      * false otherwise.
      */
     public boolean isProcessingTask() {
-        return ProcessingTask;
+        return processingData;
     }
-
+    //</editor-fold>
+    
     /**
      * Thread/Runnable method that will process the clipboard changes. this
      * function will loop until the service is stopped. meaning that
@@ -550,7 +580,7 @@ public class ClipboardService implements Runnable, FlavorListener, ClipboardOwne
      */
     @Override
     public void run() {
-        while (ServiceOnline) {
+        while (serviceOnline) {
             synchronized (this) {
                 // if we have work pending lets process it instead.
                 if (RequestQueue.isEmpty() && !forceProcess) {
@@ -566,11 +596,11 @@ public class ClipboardService implements Runnable, FlavorListener, ClipboardOwne
                 }
                 // we will process the clipboard changes.
                 forceProcess = false;// disengage the force process flag.
-                ProcessingTask = true;
+                processingData = true;
             }
             processClipboardChange(getNextQueuedClip());
             synchronized (this) {
-                ProcessingTask = false;
+                processingData = false;
             }
         }
         Myshutdownlistener.softDisengage();
@@ -617,7 +647,7 @@ public class ClipboardService implements Runnable, FlavorListener, ClipboardOwne
                 //request the clipboard to open and provide the metadata. 
                 contents = clipboard.getContents(this);
                 //the prior call can take a few seconds for exesive ammounts of data on the clipboard so check if we should bail
-                if (Objects.isNull(contents) || !ProcessingTask) {
+                if (Objects.isNull(contents) || !processingData) {
                     return;
                 }
             } catch (IllegalStateException ise) {
@@ -633,13 +663,13 @@ public class ClipboardService implements Runnable, FlavorListener, ClipboardOwne
         try {
             // if a interrupt to the process has been requested bail out.
             // also if the content of the Clipboard is null we will bail out.
-            if (Objects.isNull(contents) || !ProcessingTask) {
+            if (Objects.isNull(contents) || !processingData) {
                 return;
             }
             // check if the clipboard has any of the flavors we are interested in.
             DebugLog(contents);
             for (FlavorHandler handler : FlavorsListPriority) {
-                if (!ProcessingTask) {
+                if (!processingData) {
                     return;
                 }
                 var result = handler.handleFlavor(contents, clipboard);
@@ -653,7 +683,7 @@ public class ClipboardService implements Runnable, FlavorListener, ClipboardOwne
                     .log(Level.SEVERE, "Error Has been catch at processClipboardChange", ex);
         }
         try {
-            if (Objects.isNull(contents) || !ProcessingTask) {
+            if (Objects.isNull(contents) || !processingData) {
                 return;
             }
             if (!Owner.get()) {
@@ -702,7 +732,7 @@ public class ClipboardService implements Runnable, FlavorListener, ClipboardOwne
                     SkipNext.set(false);
                     return;
                 }
-                if (ServiceOnline) {
+                if (serviceOnline) {
                     if (e.getSource() instanceof Clipboard clipboard) {
                         // we will add the clipboard to the request queue.
                         if (RequestQueue.isEmpty() || !clipboard.equals(RequestQueue.peek())) {
@@ -717,7 +747,7 @@ public class ClipboardService implements Runnable, FlavorListener, ClipboardOwne
                     } else if (RequestQueue.isEmpty() || !SYSTEM_CLIPBOARD.equals(RequestQueue.peek())) {
                         RequestQueue.add(SYSTEM_CLIPBOARD);
                     }
-                    if (!ProcessingTask) {
+                    if (!processingData) {
                         ClipboardService.this.notify();// notify the thread to process the clipboard changes.
                     }
                 }
@@ -766,6 +796,7 @@ public class ClipboardService implements Runnable, FlavorListener, ClipboardOwne
             t = new Transferable() {
                 private final LinkedHashSet<DataFlavor> StreamFlavored = new LinkedHashSet<>();
 
+                @SuppressWarnings("deprecation")/*ignore. when java remove it we remove the specific part that we need to check*/
                 private void populateFlavors() {
                     if (StreamFlavored.isEmpty()) {
                         //first check if the flavor that is native to the ENV is supported and listed. 

@@ -9,21 +9,15 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  * 
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package com.aeongames.imageextractor;
-
-import java.awt.image.BufferedImage;
+package com.aeongames.edi.utils.Pojo;
 
 /**
- *
- * @author cartman
+ *this is a BASIC implementation to have a Object Property POJO that can be 
+ * tracked for changes. 
+ * we suggest avoiding this implementation and build something more specific 
+ * for your needs. 
+ * @author Eduardo Vindas.
  */
-public interface UIChangeListener {
-    public void RequestEnableUI(boolean newEnableStatus);
-    public void NotifyIntermediateChanges(String Information);
-    public void NotifyErrorEvent(Throwable error);
-    public void NotifyResultImageProcess(BufferedImage Information);
-    
-    
+public class ObjectPropertyPojo extends TriggerHappyListenableProperty<Object>{
 }

@@ -10,15 +10,15 @@
  *  THE SOFTWARE.
  * 
  */
-package com.aeongames.sync;
+package com.aeongames.edi.utils.ThreadUtils;
 
 /**
- *
+ * simple await class example.
  * @author cartman
  */
 public class SignalWaiter {
 
-    private static volatile boolean await = false;
+    private volatile boolean await = false;
 
     public SignalWaiter() {
     }

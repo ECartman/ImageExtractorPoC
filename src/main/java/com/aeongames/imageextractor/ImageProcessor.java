@@ -12,7 +12,7 @@
  */
 package com.aeongames.imageextractor;
 
-import com.aeongames.edi.utils.Clipboard.CharsetCompatibilityChecker;
+import com.aeongames.edi.utils.common.CharsetCompatibilityChecker;
 import com.aeongames.edi.utils.Clipboard.FlavorProcessor;
 import com.aeongames.edi.utils.ThreadUtils.StopSignalProvider;
 import com.aeongames.edi.utils.common.ByteUtils;
@@ -23,9 +23,7 @@ import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.PushbackInputStream;
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
@@ -58,32 +56,34 @@ import javax.imageio.ImageIO;
  * finally. a worker should also pull from this class and process the data.
  *
  *
- * @author cartman
+ * @author Eduardo Vindas
  */
-public class ImageProcessor extends UIChangeNotifier implements FlavorProcessor {
+public class ImageProcessor implements FlavorProcessor {
 
     private transient Path SafeLocation;
     private LinkedList<String> Signatures;
     private static final DataFlavor[] PROCESSORFLAVOR = new DataFlavor[]{DataFlavor.getTextPlainUnicodeFlavor()};
-    private MessageDigest Hasher;
+    private final MessageDigest Hasher;
 
     /**
      * default class constructor.
      *
+     * @param safePath
      * @exception NoSuchAlgorithmException if we cannot initialize the Message
      * Digester.
      */
     public ImageProcessor(Path safePath) throws NoSuchAlgorithmException {
         SafeLocation = safePath;
         Signatures = new LinkedList<>();
+        MessageDigest resultHasher = null;
         try {
-            Hasher = MessageDigest.getInstance("SHA-256");
+            resultHasher = MessageDigest.getInstance("SHA-256");
         } catch (NoSuchAlgorithmException ex) {
-            Hasher = null;// asure we keep a null reference if we are unable to initialize.
             LoggingHelper.getLogger(ImageProcessor.class.getName()).log(Level.SEVERE, null, ex);
             // rethrow the error we cannot work without a hasher.
             throw ex;
         }
+        Hasher = resultHasher;
     }
 
     public synchronized boolean updateSafePath(Path safePath) {
@@ -190,7 +190,7 @@ public class ImageProcessor extends UIChangeNotifier implements FlavorProcessor 
                     return false;
                 }
                 var signature = ByteUtils.ByteArrayToString(digestStream.getMessageDigest().digest());
-                if(Signatures.contains(signature)){
+                if (Signatures.contains(signature)) {
                     //we alredy had process this image. 
                     //do some notification??
                     return true;//we dont need to safe it. again. 
@@ -236,7 +236,7 @@ public class ImageProcessor extends UIChangeNotifier implements FlavorProcessor 
 
     private boolean mySupportedFlavorSupport(DataFlavor flavor) {
         for (DataFlavor dataFlavor : mySupportedFlavor()) {
-            if(dataFlavor!=null && dataFlavor.equals(flavor)){
+            if (dataFlavor != null && dataFlavor.equals(flavor)) {
                 return true;
             }
         }
@@ -331,11 +331,4 @@ public class ImageProcessor extends UIChangeNotifier implements FlavorProcessor 
         }
     }
 
-    private InputStreamReader getDatInputStreamReader(DataFlavor flavor, InputStream stream)
-            throws UnsupportedEncodingException {
-        var charEncoding = Charset.forName(flavor.getParameter("charset"));
-        return (charEncoding == null)
-                ? new InputStreamReader(stream)
-                : new InputStreamReader(stream, charEncoding);
-    }
 }

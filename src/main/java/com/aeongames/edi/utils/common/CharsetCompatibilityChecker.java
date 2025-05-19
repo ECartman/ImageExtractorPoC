@@ -9,7 +9,7 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  */
-package com.aeongames.edi.utils.Clipboard;
+package com.aeongames.edi.utils.common;
 
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;

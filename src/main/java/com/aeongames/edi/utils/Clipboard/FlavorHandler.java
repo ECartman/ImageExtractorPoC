@@ -18,16 +18,41 @@ import java.util.Objects;
 
 import com.aeongames.edi.utils.ThreadUtils.StopSignalProvider;
 
-public class FlavorHandler {
+/**
+ *
+ * @author Eduardo Vindas
+ */
+public class FlavorHandler implements FlavorProcessor {
 
+    /**
+     * the an array of {@link DataFlavor} (at the least one) to handle Clipboard
+     * events.
+     */
     private final DataFlavor[] flavors;
+
+    /**
+     * a instance of {@link FlavorProcessor} that defines the functionality to
+     * handle the {@link #flavors}
+     */
     private final FlavorProcessor processor;
+
+    /**
+     * a instance of {@link StopSignalProvider} used to check if the function
+     * execution of {@link #handleFlavor(java.awt.datatransfer.Transferable, java.awt.datatransfer.Clipboard)
+     * }
+     */
     private final StopSignalProvider stopProvider;
 
     /**
      * Constructor for FlavorHandler.
      *
-     * @param flavor the DataFlavor to be handled
+     * @param stopper an instance of {@code StopSignalProvider} used to detected
+     * if the execution or processing of this method (or underline calls) should
+     * be halted and the method should return as soon as possible this value can
+     * be null if so. it is assume that the task will never be ask to halt.
+     * @param processor the desire action to call when Handling the Desired
+     * Flavor(s)
+     * @param flavors the DataFlavor(s) to be handled by this instance.
      */
     public FlavorHandler(StopSignalProvider stopper, FlavorProcessor processor, DataFlavor... flavors) {
         Objects.requireNonNull(flavors, "Flavor cannot be null");
@@ -44,6 +69,46 @@ public class FlavorHandler {
      * check if the flavor is supported by this handler and if so, unload the
      * processor to handle the flavor.
      *
+     * @param flavor the expected flavor to handle,can be null, and if null this
+     * implementation will check for which one at {@link #flavors} can handle
+     * it.
+     * @param transferData the Transferable object to handle
+     * @param stopProvider {@link StopSignalProvider} used to check if this
+     * function should stop processing data and return. if this value is not
+     * equals to {@link #stopProvider} this method will throw a
+     * {@code IllegalArgumentException}
+     * @param clipboard the Clipboard associated with the Transferable
+     * @return true if the flavor was handled successfully, false otherwise (or
+     * if unable or not supported)
+     */
+    @Override
+    public boolean handleFlavor(DataFlavor flavor, StopSignalProvider stopProvider, Transferable transferData, Clipboard clipboard) {
+        if (Objects.isNull(transferData) || Objects.isNull(clipboard)) {
+            return false;
+        }
+        if (stopProvider != null && this.stopProvider != stopProvider) {
+            throw new IllegalArgumentException("the StopProvided are different instances. this is not allowed");
+        }
+        //check if the transferible. supports the flavor that our handle can process
+        DataFlavor FlavorTohandle = flavor;
+        if (!transferData.isDataFlavorSupported(FlavorTohandle)) {
+            for (DataFlavor DataFlav : flavors) {
+                if (transferData.isDataFlavorSupported(DataFlav)) {
+                    FlavorTohandle = DataFlav;
+                    break;
+                }
+            }
+        }
+        if (FlavorTohandle == null) {
+            return false;
+        }
+        return processor.handleFlavor(FlavorTohandle, this.stopProvider, transferData, clipboard);
+    }
+
+    /**
+     * check if the flavor is supported by this handler and if so, unload the
+     * processor to handle the flavor.
+     *
      * @param transferData the Transferable object to handle
      * @param clipboard the Clipboard associated with the Transferable
      * @return true if the flavor was handled successfully, false otherwise
@@ -54,7 +119,7 @@ public class FlavorHandler {
             return false;
         }
         //check if the transferible. supports the flavor that our handle can process
-        DataFlavor FlavorTohandle=null;
+        DataFlavor FlavorTohandle = null;
         for (DataFlavor flavor : flavors) {
             if (transferData.isDataFlavorSupported(flavor)) {
                 FlavorTohandle = flavor;
