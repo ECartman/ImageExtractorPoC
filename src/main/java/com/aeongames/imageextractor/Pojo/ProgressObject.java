@@ -20,14 +20,15 @@ import com.aeongames.edi.utils.Pojo.StringPropertyPojo;
  * TODO: Encapsulate.
  * @author Eduardo Vindas
  */
-public class ProcessingInformationDisplay {    
+public class ProgressObject {    
    public StringPropertyPojo CurrentStatus = new StringPropertyPojo();
+   public StringPropertyPojo ImageTypeString = new StringPropertyPojo();
    public StringPropertyPojo SavingFilePath = new StringPropertyPojo();
    public IntegerPropertyPojo CurrentFileNumber = new IntegerPropertyPojo();
    public BooleanPropertyPojo CurrentUIEnablement = new BooleanPropertyPojo();
         
     
-    public ProcessingInformationDisplay(){
+    public ProgressObject(){
     }
     
 }

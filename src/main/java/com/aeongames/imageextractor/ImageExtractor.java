@@ -13,10 +13,10 @@
 package com.aeongames.imageextractor;
 
 import com.aeongames.edi.utils.Clipboard.ClipboardService;
-import com.aeongames.edi.utils.Pojo.StringPropertyPojo;
+import com.aeongames.edi.utils.visual.UIlink.JLabelComponentBind;
 import com.aeongames.edi.utils.visual.UIlink.JtextComponentAppendUpdateBind;
+import com.aeongames.edi.utils.visual.UIlink.MCBoolCompEnableBind;
 import com.aeongames.edi.utils.visual.UIlink.MCBoolEditableBind;
-import com.aeongames.imageextractor.Pojo.ProcessingInformationDisplay;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -35,7 +35,8 @@ public class ImageExtractor extends javax.swing.JFrame {
     private final ImageProcessor MyProcessor;
 
     /**
-     * create a new Frame.that will be display on the OS. 
+     * create a new Frame.that will be display on the OS.
+     *
      * @throws java.security.NoSuchAlgorithmException
      */
     public ImageExtractor() throws NoSuchAlgorithmException {
@@ -68,7 +69,7 @@ public class ImageExtractor extends javax.swing.JFrame {
         btsave = new javax.swing.JButton();
         txtImageType = new javax.swing.JLabel();
         jScrollPane2 = new javax.swing.JScrollPane();
-        txtlistenedData = new com.aeongames.edi.utils.visual.TranslucentTextArea();
+        txtLog = new com.aeongames.edi.utils.visual.TranslucentTextArea();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setMinimumSize(new java.awt.Dimension(400, 700));
@@ -106,9 +107,9 @@ public class ImageExtractor extends javax.swing.JFrame {
         jScrollPane2.setOpaque(false);
         jScrollPane2.getViewport().setOpaque(false);
 
-        txtlistenedData.setColumns(20);
-        txtlistenedData.setRows(5);
-        jScrollPane2.setViewportView(txtlistenedData);
+        txtLog.setColumns(20);
+        txtLog.setRows(5);
+        jScrollPane2.setViewportView(txtLog);
 
         javax.swing.GroupLayout translucentPanel1Layout = new javax.swing.GroupLayout(translucentPanel1);
         translucentPanel1.setLayout(translucentPanel1Layout);
@@ -252,27 +253,27 @@ public class ImageExtractor extends javax.swing.JFrame {
     private javax.swing.JScrollPane jScrollPane2;
     private com.aeongames.edi.utils.visual.Panels.TranslucentPanel translucentPanel1;
     private javax.swing.JLabel txtImageType;
+    private com.aeongames.edi.utils.visual.TranslucentTextArea txtLog;
     private javax.swing.JTextField txtfolder;
-    private com.aeongames.edi.utils.visual.TranslucentTextArea txtlistenedData;
     private javax.swing.JLabel txtstatusbar;
     // End of variables declaration//GEN-END:variables
 
     private void initListener() {
-        var ProcessingInformationDisplay = new ProcessingInformationDisplay();
+        var ProcessingInformationDisplay = MyProcessor.getInfoLink();
         ProcessingInformationDisplay.CurrentUIEnablement.setValue(true);
         MCBoolEditableBind binding = new MCBoolEditableBind(txtfolder, ProcessingInformationDisplay.CurrentUIEnablement);
-        binding.addComponent(txtlistenedData);
-
+        MCBoolCompEnableBind binding2 = new MCBoolCompEnableBind(btsave, ProcessingInformationDisplay.CurrentUIEnablement);
+        JtextComponentAppendUpdateBind statusBind = new JtextComponentAppendUpdateBind(txtLog, ProcessingInformationDisplay.CurrentStatus);
+        JLabelComponentBind labelBind= new JLabelComponentBind(txtImageType,  ProcessingInformationDisplay.ImageTypeString);
+        binding.addComponent(txtLog);
+        binding2.addComponent(FileSpiner);
         if (MainListener.isProcessingTask() || MainListener.isServiceOnline()) {
             //we cannot add as the service is online 
             return;
         }
         MainListener.addFlavorHandler(MyProcessor, MyProcessor.mySupportedFlavor());
         MainListener.StartClipBoardService();
-
-        StringPropertyPojo StatusProperty = new StringPropertyPojo();
-        var glue = new JtextComponentAppendUpdateBind(txtlistenedData, StatusProperty);
-
+        /*
         new Thread(() -> {
             while (true) {
                 try {
@@ -283,15 +284,7 @@ public class ImageExtractor extends javax.swing.JFrame {
                 ProcessingInformationDisplay.CurrentUIEnablement.setValue(!ProcessingInformationDisplay.CurrentUIEnablement.getValue());
                 
             }
-        }).start();
-
-        //TODO we need a way to update the UI
-        //SetControlsEnablement(false);
-        /*
-            protected void process(List<String> chunks) {
-            txtstatusbar.setText(chunks.getLast());
-            }
-         */
+        }).start();*/
     }
 
 }

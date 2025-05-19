@@ -17,13 +17,16 @@ import com.aeongames.edi.utils.Clipboard.FlavorProcessor;
 import com.aeongames.edi.utils.ThreadUtils.StopSignalProvider;
 import com.aeongames.edi.utils.common.ByteUtils;
 import com.aeongames.edi.utils.error.LoggingHelper;
+import com.aeongames.imageextractor.Pojo.ProgressObject;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintWriter;
 import java.io.PushbackInputStream;
+import java.io.StringWriter;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
@@ -64,6 +67,7 @@ public class ImageProcessor implements FlavorProcessor {
     private LinkedList<String> Signatures;
     private static final DataFlavor[] PROCESSORFLAVOR = new DataFlavor[]{DataFlavor.getTextPlainUnicodeFlavor()};
     private final MessageDigest Hasher;
+    private ProgressObject InfoLink;
 
     /**
      * default class constructor.
@@ -73,6 +77,7 @@ public class ImageProcessor implements FlavorProcessor {
      * Digester.
      */
     public ImageProcessor(Path safePath) throws NoSuchAlgorithmException {
+        InfoLink = new ProgressObject();
         SafeLocation = safePath;
         Signatures = new LinkedList<>();
         MessageDigest resultHasher = null;
@@ -105,25 +110,35 @@ public class ImageProcessor implements FlavorProcessor {
 
     @Override
     public boolean handleFlavor(DataFlavor flavor, StopSignalProvider stopProvider, Transferable transferData, Clipboard clipboard) {
+        Report("A new Request From Clipboard");
+        UIStatus(false);
         if (!checkinputs(flavor, stopProvider)) {
+            Report("Not for us");
+            UIStatus(true);
             return false;
         }
         InputStream TrasferableDataStream = null;
         try {
+            Report("Reading The Clipboard Into JVM");
             TrasferableDataStream = (InputStream) transferData.getTransferData(flavor);
             if (stopProvider.isStopSignalReceived()) {
+                UIStatus(true);
                 return false;
             }
         } catch (UnsupportedFlavorException | IOException ex) {
             LoggingHelper.getLogger(ImageProcessor.class.getName()).log(Level.SEVERE, null, ex);
+            reportError(ex);
         }
         // did we managed to get the Stream? otherwise this will fail
         if (Objects.isNull(TrasferableDataStream)) {
+            Report("Could Not Read The Clipboard");
+            UIStatus(true);
             return false;
         }
         // Now we need to manually process the data. this is because we want to do
         // several things with the data.
         // first
+        Report("checking Metadata");
         var charEncoding = Charset.forName(flavor.getParameter("charset")); // try to get what charset we are using.
         CharsetDecoder decoder = charEncoding.newDecoder();
         CharsetEncoder encoder = charEncoding.newEncoder();
@@ -150,20 +165,25 @@ public class ImageProcessor implements FlavorProcessor {
             byte[] buffer = new byte[minBytesPerChar * 64]; // Read a small chunk for analysis
             int bytesRead = pushbackStream.read(buffer);
             if (bytesRead == -1) {
+                Report("Clipboard Data is not Enought");
+                UIStatus(true);
                 return false;
             }
             String imageType = null;
             // Step 2: Decode the bytes using the specified charset
+            Report("Decoding Metadata from the Clipboard initial chunk");
             ByteBuffer byteBuffer = ByteBuffer.wrap(buffer, 0, bytesRead);
             CharBuffer charBuffer = CharBuffer.allocate(64); // Allocate enough space for characters
             CoderResult result = decoder.decode(byteBuffer, charBuffer, true);
             charBuffer.flip(); // Prepare the CharBuffer for reading
             // data:image/jpeg;base64,iVBORw0KGgoAAAANSUhEUgAA...
             String header = charBuffer.toString().strip();
+            Report("Data Header: " + header);
             // Step 3: Check if the header contains the expected pattern
             if (header.startsWith("data:image/")) {
                 int lastCharofHeader = header.indexOf(",");
                 imageType = header.substring(10, lastCharofHeader);
+                InfoLink.ImageTypeString.setValue(imageType);
                 header = header.substring(lastCharofHeader + 1); // Extract the Base64 part                
                 // Step 4: Push back the remaining bytes
                 int remainingBytes = byteBuffer.remaining(); // Bytes not yet decoded
@@ -175,10 +195,13 @@ public class ImageProcessor implements FlavorProcessor {
                     pushbackStream.unread(header.getBytes(charEncoding));
                 }
             }
+            Report("Finish With Metadata Check");
             if (stopProvider.isStopSignalReceived()) {
+                UIStatus(true);
                 return false;
             }
             // Step 5 : check if the CharSet is compatible with the one for Base64
+            Report("Testing Base64 Decoding");
             var CanUseSkipApproach = CharsetCompatibilityChecker.charsetCompatibleWithBase64(charEncoding);
             if (CanUseSkipApproach) {
                 var base64Decoded = Base64.getDecoder().wrap(new SkippingIS(pushbackStream, charEncoding, minBytesPerChar));
@@ -187,12 +210,14 @@ public class ImageProcessor implements FlavorProcessor {
                 digestStream.on(true);
                 var image = ImageIO.read(digestStream);
                 if (stopProvider.isStopSignalReceived()) {
+                    UIStatus(true);
                     return false;
                 }
                 var signature = ByteUtils.ByteArrayToString(digestStream.getMessageDigest().digest());
                 if (Signatures.contains(signature)) {
                     //we alredy had process this image. 
                     //do some notification??
+                    UIStatus(true);
                     return true;//we dont need to safe it. again. 
                 }
                 Signatures.add(signature);
@@ -207,15 +232,19 @@ public class ImageProcessor implements FlavorProcessor {
                     synchronized (this) {
                         FilePath = SafeLocation.resolve(String.format("%s.%s", "TODO", imageType));
                     }
-                    return ImageIO.write(image, imageType, Files.newOutputStream(FilePath, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE));
+                    var imgResult = ImageIO.write(image, imageType, Files.newOutputStream(FilePath, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE));
+                    UIStatus(true);
+                    return imgResult;
                 }
             }
 
         } catch (IOException ex) {
             LoggingHelper.getLogger(ImageProcessor.class.getName()).log(Level.SEVERE, null, ex);
+            reportError(ex);
+            UIStatus(true);
             return false;
         }
-
+        UIStatus(true);
         return false;
     }
 
@@ -241,6 +270,25 @@ public class ImageProcessor implements FlavorProcessor {
             }
         }
         return false;
+    }
+
+    public ProgressObject getInfoLink() {
+        return InfoLink;
+    }
+
+    private void Report(String message) {
+        InfoLink.CurrentStatus.setValue(message.concat("\n"));
+    }
+
+    private void UIStatus(boolean state) {
+        InfoLink.CurrentUIEnablement.setValue(state);
+    }
+
+    private void reportError(Throwable err) {
+        StringWriter out = new StringWriter();
+        PrintWriter writer = new PrintWriter(out);
+        err.printStackTrace(writer);
+        Report(out.toString());
     }
 
     /**

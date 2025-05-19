@@ -45,7 +45,7 @@ abstract class BaseSwingBind<T, C extends JComponent> implements SwingComponentB
      * Creates a new instance of this SuperClass
      *
      * @param component_to_Bind the Component to Bind
-     * @param BindablePojo the Pojo To bind
+     * @param BindablePojo the POJO To bind
      */
     protected BaseSwingBind(C component_to_Bind, ListenableProperty<T> BindablePojo) {
         Objects.requireNonNull(component_to_Bind, "the component to link cannot be null");
