@@ -24,7 +24,7 @@ import com.aeongames.edi.utils.Pojo.ListenableProperty;
  *
  * @author Eduardo
  */
-public class JtextComponentBind extends BaseSwingBind<String, JTextComponent>{
+public class JtextComponentBind extends BaseBiDirectionalBind<String, JTextComponent>{
 
     private final DocumentListener DocListener= new DocumentListener() {
             @Override

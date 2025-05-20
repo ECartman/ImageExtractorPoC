@@ -31,16 +31,17 @@ interface SwingComponentBind<T,C extends JComponent> {
     C getLinkedComponent();
 
     /**
-     * removes the binding between the Swing Component and the POjo
+     * Removes the Binding From the UI Component and the POJO.
+     * the specifics on how this is done please review the specific Implementation.
      */
     void Unbound();
     
     /**
-     * gather the Object Property and returns its value. if not set might return 
-     * null
-     * @return the current value for the {@code Property}
+     * Gets the Value of {@code T} type. from the UI Component.
+     * @return the current Property value from this UI Component that is bounded.
      */
     T getUIValue(); 
+    
     /**
      * this function is intended for testing. and the idea is to check 
      * if the UI has the same value for the property as the POJO
@@ -48,7 +49,7 @@ interface SwingComponentBind<T,C extends JComponent> {
      * @return 
      */
      default boolean isPropertyOutOfSync(T theValueThatShould){
-        return Objects.equals(getUIValue(),theValueThatShould);
+        return Objects.equals(theValueThatShould,getUIValue());
      }
 
 }

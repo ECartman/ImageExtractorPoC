@@ -13,16 +13,16 @@
 package com.aeongames.edi.utils.Pojo;
 
 /**
- *
- * @author cartman
+ * a extension of PropertyPojo that defines 2 functions for primitive value.
+ * {@link #super}
+ * @author Eduardo
  */
-public class BooleanPropertyPojo extends TriggerHappyListenableProperty<Boolean> {
+public class BooleanPropertyPojo extends PropertyPojo<Boolean> {
 
     /**
      * gather the integer primitive Property and returns its value. if not set
      * this will throw null pointer Exception.
-     *
-     * @return the current value for the {@code Property}
+     * @return the current value for the {@link #getValue()}
      * @throws NullPointerException
      */
     public boolean getValuePrimive() {
@@ -38,7 +38,7 @@ public class BooleanPropertyPojo extends TriggerHappyListenableProperty<Boolean>
      * this will throw null pointer Exception.
      *
      * @param nullRemplacementValue the value to return if the property is null
-     * @return the current value for the {@code Property}
+     * @return the current value for the {@link #getValue()}
      * @throws NullPointerException
      */
     public boolean getValuePrimive(boolean nullRemplacementValue) {

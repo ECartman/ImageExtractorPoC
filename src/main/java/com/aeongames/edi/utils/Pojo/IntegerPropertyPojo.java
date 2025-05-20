@@ -13,21 +13,29 @@
 package com.aeongames.edi.utils.Pojo;
 
 /**
- * this is a interface that define a set of Functions to expose a properties of
- * the {@code P indexed or sorted} of type {@code String}.
+ * a extension of PropertyPojo that defines 2 functions for primitive value.
+ * {@link #super}
  *
- * @author Eduardo Vindas
+ * @author Eduardo
  */
-public final class IntegerPropertyPojo extends TriggerHappyListenableProperty<Integer> {
+public final class IntegerPropertyPojo extends PropertyPojo<Integer> {
+
+    /**
+     * creates a new Instance of a Property POJO.and sets the Value property to
+     * 0
+     */
+    public IntegerPropertyPojo() {
+        super(0);
+    }
 
     /**
      * gather the integer primitive Property and returns its value. if not set
      * this will throw null pointer Exception.
      *
-     * @return the current value for the {@code Property}
+     * @return the current value for the {@link #getValue()}
      * @throws NullPointerException
      */
-    public int getValuePrimive() {
+    public synchronized int getValuePrimive() {
         var result = getValue();
         if (result == null) {
             throw new NullPointerException("the Property returned null value");
@@ -40,12 +48,17 @@ public final class IntegerPropertyPojo extends TriggerHappyListenableProperty<In
      * this will throw null pointer Exception.
      *
      * @param nullRemplacementValue the value to return if the property is null
-     * @return the current value for the {@code Property}
+     * @return the current value for the {@link #getValue()}
      * @throws NullPointerException
      */
-    public int getValuePrimive(int nullRemplacementValue) {
+    public synchronized int getValuePrimive(int nullRemplacementValue) {
         var result = getValue();
         return result == null ? nullRemplacementValue : result;
+    }
+
+    public synchronized final void plusplus() {
+        var next = getValuePrimive();
+        setValue(++next);
     }
 
 }

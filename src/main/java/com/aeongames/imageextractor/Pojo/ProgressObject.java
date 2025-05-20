@@ -14,21 +14,25 @@ package com.aeongames.imageextractor.Pojo;
 
 import com.aeongames.edi.utils.Pojo.BooleanPropertyPojo;
 import com.aeongames.edi.utils.Pojo.IntegerPropertyPojo;
-import com.aeongames.edi.utils.Pojo.StringPropertyPojo;
+import com.aeongames.edi.utils.Pojo.PropertyPojo;
+import java.awt.image.BufferedImage;
 
 /**
  * TODO: Encapsulate.
+ *
  * @author Eduardo Vindas
  */
-public class ProgressObject {    
-   public StringPropertyPojo CurrentStatus = new StringPropertyPojo();
-   public StringPropertyPojo ImageTypeString = new StringPropertyPojo();
-   public StringPropertyPojo SavingFilePath = new StringPropertyPojo();
-   public IntegerPropertyPojo CurrentFileNumber = new IntegerPropertyPojo();
-   public BooleanPropertyPojo CurrentUIEnablement = new BooleanPropertyPojo();
-        
-    
-    public ProgressObject(){
+public class ProgressObject {
+
+    public final PropertyPojo<String> CurrentStatus = PropertyPojo.newStringPojo();
+    public final PropertyPojo<String> ImageTypeString = PropertyPojo.newStringPojo();
+    public final PropertyPojo<BufferedImage> ImageProperty = new PropertyPojo<>();
+    public final PropertyPojo<String> SavingFilePath = PropertyPojo.newStringPojo();
+    public final PropertyPojo<String> LastFileCheckSum = PropertyPojo.newStringPojo();
+    public final IntegerPropertyPojo CurrentFileNumber = new IntegerPropertyPojo();
+    public final BooleanPropertyPojo CurrentUIEnablement = new BooleanPropertyPojo();
+
+    public ProgressObject() {
     }
-    
+
 }

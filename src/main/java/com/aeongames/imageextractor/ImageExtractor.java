@@ -14,7 +14,9 @@ package com.aeongames.imageextractor;
 
 import com.aeongames.edi.utils.Clipboard.ClipboardService;
 import com.aeongames.edi.utils.visual.UIlink.JLabelComponentBind;
+import com.aeongames.edi.utils.visual.UIlink.JSpinnerComponentBind;
 import com.aeongames.edi.utils.visual.UIlink.JtextComponentAppendUpdateBind;
+import com.aeongames.edi.utils.visual.UIlink.JtextComponentBind;
 import com.aeongames.edi.utils.visual.UIlink.MCBoolCompEnableBind;
 import com.aeongames.edi.utils.visual.UIlink.MCBoolEditableBind;
 import java.nio.file.Files;
@@ -120,9 +122,7 @@ public class ImageExtractor extends javax.swing.JFrame {
                     .addGroup(translucentPanel1Layout.createSequentialGroup()
                         .addComponent(jLabel4)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(txtfolder)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(btsave))
+                        .addComponent(txtfolder))
                     .addGroup(translucentPanel1Layout.createSequentialGroup()
                         .addContainerGap()
                         .addComponent(jLabel5)
@@ -131,8 +131,9 @@ public class ImageExtractor extends javax.swing.JFrame {
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(jLabel3)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(txtImageType, javax.swing.GroupLayout.PREFERRED_SIZE, 52, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(0, 0, Short.MAX_VALUE)))
+                        .addComponent(txtImageType, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(btsave)
                 .addContainerGap())
             .addComponent(jScrollPane2, javax.swing.GroupLayout.Alignment.TRAILING)
         );
@@ -265,6 +266,9 @@ public class ImageExtractor extends javax.swing.JFrame {
         MCBoolCompEnableBind binding2 = new MCBoolCompEnableBind(btsave, ProcessingInformationDisplay.CurrentUIEnablement);
         JtextComponentAppendUpdateBind statusBind = new JtextComponentAppendUpdateBind(txtLog, ProcessingInformationDisplay.CurrentStatus);
         JLabelComponentBind labelBind= new JLabelComponentBind(txtImageType,  ProcessingInformationDisplay.ImageTypeString);
+        JLabelComponentBind labelDigest= new JLabelComponentBind(txtstatusbar,  ProcessingInformationDisplay.LastFileCheckSum);
+        JtextComponentBind BindFilePath = new JtextComponentBind(txtfolder, ProcessingInformationDisplay.SavingFilePath);
+        JSpinnerComponentBind BinFileNameSpinner =  new JSpinnerComponentBind(FileSpiner, ProcessingInformationDisplay.CurrentFileNumber);
         binding.addComponent(txtLog);
         binding2.addComponent(FileSpiner);
         if (MainListener.isProcessingTask() || MainListener.isServiceOnline()) {

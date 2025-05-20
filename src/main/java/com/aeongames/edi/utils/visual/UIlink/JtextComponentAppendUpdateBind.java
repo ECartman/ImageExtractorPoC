@@ -26,7 +26,7 @@ import javax.swing.text.JTextComponent;
  *
  * @author Eduardo Vindas
  */
-public class JtextComponentAppendUpdateBind extends CachedSwingBind<String, JTextComponent> {
+public class JtextComponentAppendUpdateBind extends CachedUniDirectionalBind<String, JTextComponent> {
 
     public JtextComponentAppendUpdateBind(JTextComponent component, ListenableProperty<String> pojo) {
         super(component, pojo);

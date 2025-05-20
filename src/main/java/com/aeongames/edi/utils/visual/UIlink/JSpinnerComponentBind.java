@@ -9,7 +9,6 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  * 
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
 package com.aeongames.edi.utils.visual.UIlink;
 
@@ -22,7 +21,8 @@ import javax.swing.event.ChangeListener;
  *
  * @author Eduardo Vindas
  */
-public class JSpinnerComponentBind extends BaseSwingBind<Integer, JSpinner>{
+public class JSpinnerComponentBind extends BaseBiDirectionalBind<Integer, JSpinner> {
+
     private final ChangeListener SpinnerchangeListener = (ChangeEvent e) -> {
         updatePojo();
     };
@@ -40,19 +40,28 @@ public class JSpinnerComponentBind extends BaseSwingBind<Integer, JSpinner>{
         return null;
     }
 
+    /**
+     * {@inheritDoc }
+     */
     @Override
     protected void setTheUIValue(Integer newValue) {
-       WrappedComponent.getModel().setValue(newValue);
+        WrappedComponent.getModel().setValue(newValue);
     }
 
+    /**
+     * {@inheritDoc }
+     */
     @Override
     protected void BindUIListener() {
         WrappedComponent.getModel().addChangeListener(SpinnerchangeListener);
     }
 
+    /**
+     * {@inheritDoc }
+     */
     @Override
     protected void UnboundUIListener() {
-       WrappedComponent.getModel().removeChangeListener(SpinnerchangeListener);
+        WrappedComponent.getModel().removeChangeListener(SpinnerchangeListener);
     }
-    
+
 }

@@ -25,18 +25,34 @@ import javax.swing.JComponent;
 import javax.swing.SwingUtilities;
 
 /**
- * a Caching Binding a Visual Component to the ListenableProperty POJO.this
- * differ from {@link BaseSwingBind} as this version Catches the changes from
- * the POJO and when able unloads all updates into the UI
- * component.functionality required this to work this Caching implementation
- * supports 1 -> 1 Unidirectional and 1 -> N unidirectional for that please
- * refer to
  *
+ * this is A CachedUnidirectionalBind that binds POJO({@link ListenableProperty})
+ * to VisualComponent, is important to note this Class defines a Binder that
+ * <strong>can</strong> bind Bidirectionally, However is not ready to do So By 
+ * default and it is up to the specific implementation to glue the listeners to
+ * do so, for Bidirectional Implementation please refer 
+ * to {@link BaseBiDirectionalBind} <br>
+ * 
+ * the default Binding For this Class is Unidirectional Caching Values from 
+ * the POJO to the UI. in a way that matches<br>
+ * 1(POJO):N(UI Components) (1:N)<br>
+ * <br>
+ * <strong>NOTE:</strong> this implementation caches changes from the property 
+ * and then they are unloaded one by one at the same time into the Component.
+ * they are not concatenated. rather they are barraged into each element one at 
+ * the time. (similar to a card dealer in poker, with the caveat that the dealer
+ * on this case provides a copy of the same card to all players) 
+ * <br>
+ * this method is suggested for those components that append changed into them 
+ * for example a Text Area that keep logs of activities. 
+ * and can be used for a single component or multiple. 
+ * <br>
+ * TODO: support Binding A error Listener. 
  * @author Eduardo Vindas
  * @param <T> Type of Data to Handle
  * @param <C> The Type of UI that subclass from JComponent.
  */
-abstract class CachedSwingBind<T, C extends JComponent> implements SwingComponentBind<T, C>, PropertyChangeListener<T, ListenableProperty<T>> {
+abstract class CachedUniDirectionalBind<T, C extends JComponent> implements SwingComponentBind<T, C>, PropertyChangeListener<T, ListenableProperty<T>> {
 
     private final ReentrantReadWriteLock ListLock = new ReentrantReadWriteLock(true);
     private final AtomicBoolean MutatingProperty = new AtomicBoolean(false);
@@ -45,7 +61,7 @@ abstract class CachedSwingBind<T, C extends JComponent> implements SwingComponen
     private final LinkedList<T> CachedPendingTransferData;
     protected final ListenableProperty<T> BoundPojo;
 
-    private CachedSwingBind() {
+    private CachedUniDirectionalBind() {
         throw new IllegalCallerException("illegal construction");
     }
 
@@ -55,7 +71,7 @@ abstract class CachedSwingBind<T, C extends JComponent> implements SwingComponen
      * @param component_to_Bind the Component to Bind
      * @param BindablePojo the POJO To bind
      */
-    protected CachedSwingBind(C component_to_Bind, ListenableProperty<T> BindablePojo) {
+    protected CachedUniDirectionalBind(C component_to_Bind, ListenableProperty<T> BindablePojo) {
         Objects.requireNonNull(component_to_Bind, "the component to link cannot be null");
         Objects.requireNonNull(BindablePojo, "the component to link cannot be null");
         WrappedComponents = new ArrayList<>();

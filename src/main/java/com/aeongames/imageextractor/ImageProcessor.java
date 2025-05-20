@@ -22,6 +22,7 @@ import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
@@ -35,6 +36,7 @@ import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
@@ -78,6 +80,7 @@ public class ImageProcessor implements FlavorProcessor {
      */
     public ImageProcessor(Path safePath) throws NoSuchAlgorithmException {
         InfoLink = new ProgressObject();
+        RegisterForPathChanges();
         SafeLocation = safePath;
         Signatures = new LinkedList<>();
         MessageDigest resultHasher = null;
@@ -109,7 +112,8 @@ public class ImageProcessor implements FlavorProcessor {
     }
 
     @Override
-    public boolean handleFlavor(DataFlavor flavor, StopSignalProvider stopProvider, Transferable transferData, Clipboard clipboard) {
+    public boolean handleFlavor(DataFlavor flavor, StopSignalProvider stopProvider, Transferable transferData,
+            Clipboard clipboard) {
         Report("A new Request From Clipboard");
         UIStatus(false);
         if (!checkinputs(flavor, stopProvider)) {
@@ -184,13 +188,14 @@ public class ImageProcessor implements FlavorProcessor {
                 int lastCharofHeader = header.indexOf(",");
                 imageType = header.substring(11, lastCharofHeader);
                 InfoLink.ImageTypeString.setValue(imageType);
-                header = header.substring(lastCharofHeader + 1); // Extract the Base64 part                
+                imageType = SimpleImageType(imageType);
+                header = header.substring(lastCharofHeader + 1); // Extract the Base64 part
                 // Step 4: Push back the remaining bytes
                 int remainingBytes = byteBuffer.remaining(); // Bytes not yet decoded
                 if (remainingBytes > 0) {
                     pushbackStream.unread(buffer, bytesRead - remainingBytes, remainingBytes);
                 }
-                //now return the non header part back to the stream.
+                // now return the non header part back to the stream.
                 if (header.length() > 0) {
                     pushbackStream.unread(header.getBytes(charEncoding));
                 }
@@ -202,50 +207,80 @@ public class ImageProcessor implements FlavorProcessor {
             }
             // Step 5 : check if the CharSet is compatible with the one for Base64
             Report("Testing Base64 Decoding");
-            var CanUseSkipApproach = CharsetCompatibilityChecker.charsetCompatibleWithBase64(charEncoding);
-            if (CanUseSkipApproach) {
-                var base64Decoded = Base64.getDecoder().wrap(new SkippingIS(pushbackStream, charEncoding, minBytesPerChar));
-                Hasher.reset();//ensure we are starting fresh.
+            if (CharsetCompatibilityChecker.charsetCompatibleWithBase64(charEncoding)) {
+                Report("Charset is compatible with Base64");
+                Report("Setting the Checksum subsStream");
+                var base64Decoded = Base64.getDecoder()
+                        .wrap(new SkippingIS(pushbackStream, charEncoding, minBytesPerChar));
+                Hasher.reset();// ensure we are starting fresh.
                 DigestInputStream digestStream = new DigestInputStream(base64Decoded, Hasher);
                 digestStream.on(true);
+                Report("Reading the Image...");
                 var image = ImageIO.read(digestStream);
+                Report("Completed Reading the Image...");
+                Report(image);
                 if (stopProvider.isStopSignalReceived()) {
                     UIStatus(true);
                     return false;
                 }
+                Report("Calculating Checksum");
                 var signature = ByteUtils.ByteArrayToString(digestStream.getMessageDigest().digest());
+                reportCheckSum(signature);
                 if (Signatures.contains(signature)) {
-                    //we alredy had process this image. 
-                    //do some notification??
+                    // we alredy had process this image.
+                    // do some notification??
                     UIStatus(true);
-                    return true;//we dont need to safe it. again. 
+                    return true;// we dont need to safe it. again.
                 }
                 Signatures.add(signature);
-                //test
+                // test
                 if (image != null) {
-                    final Path FilePath;
-                    if (imageType != null) {
-                        imageType = imageType.toLowerCase().contains("png") ? "png" : "jpg";
-                    } else {
-                        imageType = "png";
-                    }
-                    synchronized (this) {
-                        FilePath = SafeLocation.resolve(String.format("%s.%s", "TODO", imageType));
-                    }
-                    var imgResult = ImageIO.write(image, imageType, Files.newOutputStream(FilePath, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE));
+                    final Path FilePath = GetNextFile(imageType);                    
+                    Report("Recording File:");
+                    Report(FilePath.toString());
+                    var imgResult = ImageIO.write(image, imageType,
+                            Files.newOutputStream(FilePath, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE));
+                    tickFileSpinner();
                     UIStatus(true);
                     return imgResult;
                 }
+            } else {
+                Report("Charset is NOT compatible with Base64");
             }
-
         } catch (IOException ex) {
             LoggingHelper.getLogger(ImageProcessor.class.getName()).log(Level.SEVERE, null, ex);
             reportError(ex);
             UIStatus(true);
             return false;
+        } finally {
+            try {
+                if (Objects.nonNull(TrasferableDataStream)) {
+                    TrasferableDataStream.close();
+                }
+            } catch (IOException ex) {
+                LoggingHelper.getLogger(ImageProcessor.class.getName()).log(Level.SEVERE, null, ex);
+                reportError(ex);
+            }
         }
         UIStatus(true);
         return false;
+    }
+
+    private synchronized Path GetNextFile(String imageType) {
+        var nextfile = InfoLink.CurrentFileNumber.getValue().toString();
+        var FilePath = SafeLocation.resolve(String.format("%s.%s", nextfile, imageType));
+        return FilePath;
+    }
+
+    private synchronized void tickFileSpinner() {
+        InfoLink.CurrentFileNumber.plusplus();
+    }
+
+    private void RegisterForPathChanges() {
+        InfoLink.SavingFilePath.addPropertyListener((Source, newValue) -> {
+            var success = updateSafePath(Paths.get(newValue));
+
+        });
     }
 
     private boolean checkinputs(DataFlavor flavor, StopSignalProvider stopProvider) {
@@ -280,6 +315,11 @@ public class ImageProcessor implements FlavorProcessor {
         InfoLink.CurrentStatus.setValue(message.concat("\n"));
     }
 
+    private void reportCheckSum(String checksum) {
+        Report("Checksum: " + checksum);
+        InfoLink.LastFileCheckSum.setValue(checksum);
+    }
+
     private void UIStatus(boolean state) {
         InfoLink.CurrentUIEnablement.setValue(state);
     }
@@ -289,6 +329,19 @@ public class ImageProcessor implements FlavorProcessor {
         PrintWriter writer = new PrintWriter(out);
         err.printStackTrace(writer);
         Report(out.toString());
+    }
+
+    private String SimpleImageType(String imageType) {
+        if (imageType != null) {
+            imageType = imageType.toLowerCase().contains("png") ? "png" : "jpg";
+        } else {
+            imageType = "png";
+        }
+        return imageType;
+    }
+
+    private void Report(BufferedImage image) {
+       
     }
 
     /**
@@ -312,12 +365,12 @@ public class ImageProcessor implements FlavorProcessor {
 
         @Override
         public int read() throws IOException {
-            //the minimal read we do is 1 byte. 
-            //but to do so we need to read BytesperData 
-            //to gather it. 
-            //to gather the byte we desire we need to either read the first one 
-            //or read the last one (due Edianess) 
-            //to do so efficiently we read a single byte or skipping and then reading
+            // the minimal read we do is 1 byte.
+            // but to do so we need to read BytesperData
+            // to gather it.
+            // to gather the byte we desire we need to either read the first one
+            // or read the last one (due Edianess)
+            // to do so efficiently we read a single byte or skipping and then reading
             if (isbigEdian) {
                 wrappedstream.skip(BytesperData - 1);
             }

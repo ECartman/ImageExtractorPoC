@@ -9,15 +9,14 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  * 
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package com.aeongames.edi.utils.Pojo;
+package com.aeongames.edi.utils.visual.UIlink;
 
 /**
- *this is a BASIC implementation to have a Object Property POJO that can be 
- * tracked for changes. 
- * we suggest avoiding this implementation and build something more specific 
- * for your needs. 
- * @author Eduardo Vindas.
+ *
+ * @author cartman
  */
-public class ObjectPropertyPojo extends TriggerHappyListenableProperty<Object>{
+public class ImagePanelBinding {
+    
 }
