@@ -30,11 +30,16 @@ public class JtextComponentAppendUpdateBind extends CachedUniDirectionalBind<Str
 
     public JtextComponentAppendUpdateBind(JTextComponent component, ListenableProperty<String> pojo) {
         super(component, pojo);
+        //we dont need bindings from UI.
+        /*
+        for (var WrappedComponent : WrappedComponents) {
+            BindUIListener(WrappedComponent);
+        }*/
     }
 
     @Override
     protected void BindUIListener(JTextComponent Component) {
-         //we dont need to Unbound. 
+        //we dont need to Unbound. 
     }
 
     @Override
@@ -44,7 +49,7 @@ public class JtextComponentAppendUpdateBind extends CachedUniDirectionalBind<Str
 
     @Override
     protected String getUIValueFor(JTextComponent component) {
-       return component.getText();
+        return component.getText();
     }
 
     @Override

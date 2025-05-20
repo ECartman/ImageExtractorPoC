@@ -14,7 +14,6 @@ package com.aeongames.edi.utils.visual.UIlink;
 
 import com.aeongames.edi.utils.Pojo.ListenableProperty;
 import javax.swing.JSpinner;
-import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 /**
@@ -23,17 +22,18 @@ import javax.swing.event.ChangeListener;
  */
 public class JSpinnerComponentBind extends BaseBiDirectionalBind<Integer, JSpinner> {
 
-    private final ChangeListener SpinnerchangeListener = (ChangeEvent e) -> {
+    private final ChangeListener SpinnerchangeListener = (var e) -> {
         updatePojo();
     };
 
     public JSpinnerComponentBind(JSpinner component, ListenableProperty<Integer> pojo) {
-        super(component, pojo);
+        super(component, pojo);                
+        BindUIListener();
     }
 
     @Override
     public Integer getUIValue() {
-        var currentUIValue = WrappedComponent.getModel().getValue();
+        var currentUIValue = WrappedComponents.get(0).getModel().getValue();
         if (currentUIValue instanceof Integer UnderlineValue) {
             return UnderlineValue;
         }
@@ -45,15 +45,15 @@ public class JSpinnerComponentBind extends BaseBiDirectionalBind<Integer, JSpinn
      */
     @Override
     protected void setTheUIValue(Integer newValue) {
-        WrappedComponent.getModel().setValue(newValue);
+        getUIComponent().getModel().setValue(newValue);
     }
 
     /**
      * {@inheritDoc }
      */
     @Override
-    protected void BindUIListener() {
-        WrappedComponent.getModel().addChangeListener(SpinnerchangeListener);
+    protected final void BindUIListener() {
+        getUIComponent().getModel().addChangeListener(SpinnerchangeListener);
     }
 
     /**
@@ -61,7 +61,7 @@ public class JSpinnerComponentBind extends BaseBiDirectionalBind<Integer, JSpinn
      */
     @Override
     protected void UnboundUIListener() {
-        WrappedComponent.getModel().removeChangeListener(SpinnerchangeListener);
+       getUIComponent().getModel().removeChangeListener(SpinnerchangeListener);
     }
 
 }

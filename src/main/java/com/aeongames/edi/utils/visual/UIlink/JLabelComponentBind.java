@@ -47,7 +47,8 @@ public class JLabelComponentBind extends BaseBiDirectionalBind<String, JLabel> {
      * @param pojo the {@link ListenableProperty} to bind
      */
     public JLabelComponentBind(JLabel component, ListenableProperty<String> pojo) {
-        super(component, pojo);
+        super(component, pojo);        
+        BindUIListener();
     }
 
     /**
@@ -55,7 +56,7 @@ public class JLabelComponentBind extends BaseBiDirectionalBind<String, JLabel> {
      */
     @Override
     protected final void BindUIListener() {
-        WrappedComponent.addPropertyChangeListener(LABELPROPERTY, Listener);
+        getUIComponent().addPropertyChangeListener(LABELPROPERTY, Listener);
     }
 
     /**
@@ -63,7 +64,7 @@ public class JLabelComponentBind extends BaseBiDirectionalBind<String, JLabel> {
      */
     @Override
     public final void UnboundUIListener() {
-        WrappedComponent.removePropertyChangeListener(Listener);
+        getUIComponent().removePropertyChangeListener(Listener);
     }
 
     /**
@@ -72,7 +73,7 @@ public class JLabelComponentBind extends BaseBiDirectionalBind<String, JLabel> {
      */
     @Override
     public synchronized String getUIValue() {
-        return WrappedComponent.getText();
+        return getUIComponent().getText();
     }
 
     /**
@@ -80,7 +81,7 @@ public class JLabelComponentBind extends BaseBiDirectionalBind<String, JLabel> {
      */
     @Override
     protected synchronized void setTheUIValue(String newValue) {
-        WrappedComponent.setText(newValue);
+        getUIComponent().setText(newValue);
     }
 
     /**

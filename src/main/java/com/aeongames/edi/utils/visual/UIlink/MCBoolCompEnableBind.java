@@ -20,13 +20,18 @@ import javax.swing.JComponent;
  *
  * @author Eduardo
  */
-public class MCBoolCompEnableBind extends MultiCastingSwingBind<Boolean, JComponent> {
+public class MCBoolCompEnableBind extends UniDirBroadcastBind<Boolean, JComponent> {
 
     private static final String ENABLEDPROPERTY = "enabled";
     private final ReentrantLock LastestValueLock = new ReentrantLock(true);
 
     public MCBoolCompEnableBind(JComponent component_to_Bind, ListenableProperty<Boolean> BindablePojo) {
         super(component_to_Bind, BindablePojo);
+        /*
+        for (var WrappedComponent : WrappedComponents) {
+            BindUIListener(WrappedComponent);
+        }
+        */
     }
 
     @Override
@@ -36,29 +41,17 @@ public class MCBoolCompEnableBind extends MultiCastingSwingBind<Boolean, JCompon
 
     @Override
     protected void UnboundUIListener(JComponent Component) {
-       // Component.removePropertyChangeListener(MyPropertyListener);
-    }
-
-    /**
-     * returns the Last Value set.
-     *
-     * @return
-     */
-    @Override
-    public Boolean getUIValue() {
-        boolean result;
-        LastestValueLock.lock();
-        try {
-            result = getLinkedComponent().isEnabled();
-        } finally {
-            LastestValueLock.unlock();
-        }
-        return result;
+        // Component.removePropertyChangeListener(MyPropertyListener);
     }
 
     @Override
     protected void BindUIListener(JComponent Component) {
-       // Component.addPropertyChangeListener(EDITABLEPROPERTY, MyPropertyListener);
+        // Component.addPropertyChangeListener(EDITABLEPROPERTY, MyPropertyListener);
+    }
+
+    @Override
+    protected Boolean getUIValueFor(JComponent component) {
+        return component.isEnabled();
     }
 
 }

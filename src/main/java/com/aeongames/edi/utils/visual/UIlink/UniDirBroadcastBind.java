@@ -13,51 +13,19 @@
 package com.aeongames.edi.utils.visual.UIlink;
 
 import com.aeongames.edi.utils.Pojo.ListenableProperty;
-import java.util.LinkedList;
 import java.util.Objects;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 import javax.swing.JComponent;
 
 /**
  *
- * this is A CachedUnidirectionalBind that binds
- * POJO({@link ListenableProperty}) to VisualComponent, is important to note
- * this Class defines a Binder that
- * <strong>can</strong> bind Bidirectionally, However is not ready to do So By
- * default and it is up to the specific implementation to glue the listeners to
- * do so, for Bidirectional Implementation please refer to
- * {@link BaseBiDirectionalBind} <br>
- *
- * the default Binding For this Class is Unidirectional Caching Values from the
- * POJO to the UI. in a way that matches<br>
- * 1(POJO):N(UI Components) (1:N)<br>
- * <br>
- * <strong>NOTE:</strong> this implementation caches changes from the property
- * and then they are unloaded one by one at the same time into the Component.
- * they are not concatenated. rather they are barraged into each element one at
- * the time. (similar to a card dealer in poker, with the caveat that the dealer
- * on this case provides a copy of the same card to all players)
- * <br>
- * this method is suggested for those components that append changed into them
- * for example a Text Area that keep logs of activities. and can be used for a
- * single component or multiple.
- * <br>
- * TODO: support Binding A error Listener.
+ * this class allows and foster setting a POJO to notify in a
+ * 1(ListenableProperty):N(UI elements) updates an Implementer Might provide a
+ * 1:N support in two ways. but this class as it stands only support on way
+ * Broadcast.
  *
  * @author Eduardo Vindas
- * @param <T> Type of Data to Handle
- * @param <C> The Type of UI that subclass from JComponent.
  */
-non-sealed abstract class CachedUniDirectionalBind<T, C extends JComponent> extends BaseBinder<T, C> {
-
-    /**
-     * a Read write lock to protect the LinkedList Insertions and reads.
-     */
-    private final ReentrantReadWriteLock ListLock = new ReentrantReadWriteLock(true);
-    /**
-     * a cache of changes made on the property to throw to the UI.
-     */
-    private final LinkedList<T> CachedPendingTransferData;
+non-sealed abstract class UniDirBroadcastBind<T, C extends JComponent> extends BaseBinder<T, C> {
 
     /**
      * Creates a new instance of this CachedUniDirectionalBind class
@@ -65,9 +33,8 @@ non-sealed abstract class CachedUniDirectionalBind<T, C extends JComponent> exte
      * @param component_to_Bind the Component to Bind
      * @param BindablePojo the POJO To bind
      */
-    protected CachedUniDirectionalBind(C component_to_Bind, ListenableProperty<T> BindablePojo) {
+    protected UniDirBroadcastBind(C component_to_Bind, ListenableProperty<T> BindablePojo) {
         super(component_to_Bind, BindablePojo);
-        CachedPendingTransferData = new LinkedList<>();
         bound();
     }
 
@@ -96,50 +63,58 @@ non-sealed abstract class CachedUniDirectionalBind<T, C extends JComponent> exte
         }
     }
 
-    public T getUIValue() {
+    public final T getUIValue() {
         return getUIValueFor(WrappedComponents.get(0));
     }
 
     /**
-     * record the Change into the Cache. 
-     * @param newValue
+     * we don't consume this nor we want subclasses to consume it. 
      */
     @Override
-    protected final void PropertyUpdated(T newValue) {
-        ListLock.writeLock().lock();
-        try {
-            CachedPendingTransferData.add(newValue);
-        } finally {
-            ListLock.writeLock().unlock();
-        }
-    }
+    protected final void PropertyUpdated(T newValue){}
 
     public T getUIValueFor(int index) {
         return getUIValueFor(WrappedComponents.get(index));
     }
-    
-   @Override
+
+    @Override
     protected void setTheUIValue(T newValue) {
-        ListLock.readLock().lock();
-        try {
-            T val;
-            while ((val = CachedPendingTransferData.poll()) != null) {
-                for (C WrappedComponent : WrappedComponents) {
-                    setTheUIValue(WrappedComponent, val);
-                }
-            }
-        } finally {
-            ListLock.readLock().unlock();
+        for (C WrappedComponent : WrappedComponents) {
+            setTheUIValue(WrappedComponent, newValue);
         }
     }
 
     /**
-     * you COULD override this to enable Bidirectional changes.
-     * but personally do not recommend. 
+     * you COULD override this to enable Bidirectional changes. but personally
+     * do not recommend.
      */
     @Override
     protected void updatePojo() {
         //do do Unicast. thus we dont update the POJO
+    }
+
+    /**
+     * adds additional Components to listen for updates from the POJO
+     *
+     * @param Component
+     * @return
+     */
+    public synchronized final boolean addComponent(C Component) {
+        var result = WrappedComponents.add(Component);
+        if (result) {
+            BindUIListener(Component);
+        }
+        return result;
+    }
+
+    /**
+     * Removes Components that will be notified for updates from the POJO
+     *
+     * @param Component
+     */
+    public synchronized final void removeComponent(C Component) {
+        WrappedComponents.remove(Component);
+        UnboundUIListener(Component);
     }
 
     /**
@@ -159,4 +134,5 @@ non-sealed abstract class CachedUniDirectionalBind<T, C extends JComponent> exte
     protected abstract T getUIValueFor(C component);
 
     protected abstract void setTheUIValue(C Component, T newValue);
+
 }

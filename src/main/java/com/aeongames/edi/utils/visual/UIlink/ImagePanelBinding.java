@@ -9,14 +9,15 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  * 
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
 package com.aeongames.edi.utils.visual.UIlink;
 
+import com.aeongames.edi.utils.visual.Panels.ImagePanel;
+
 /**
- *
- * @author cartman
+ * 
+ * @author Eduardo
  */
-public class ImagePanelBinding {
+public class ImagePanelBinding extends BaseBiDirectionalBind<, ImagePanel>{
     
 }

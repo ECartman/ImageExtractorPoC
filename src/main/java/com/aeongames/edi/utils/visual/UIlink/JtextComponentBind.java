@@ -44,17 +44,18 @@ public class JtextComponentBind extends BaseBiDirectionalBind<String, JTextCompo
         };
 
     public JtextComponentBind(JTextComponent component, ListenableProperty<String> pojo) {
-        super(component,pojo);
+        super(component,pojo);                
+        BindUIListener();
     }
     
     @Override
     protected final void BindUIListener(){        
-        WrappedComponent.getDocument().addDocumentListener(DocListener);
+        getUIComponent().getDocument().addDocumentListener(DocListener);
     }
     
     @Override
     public final void UnboundUIListener(){
-        WrappedComponent.getDocument().removeDocumentListener(DocListener);
+        getUIComponent().getDocument().removeDocumentListener(DocListener);
     }
 
     /**
@@ -63,12 +64,12 @@ public class JtextComponentBind extends BaseBiDirectionalBind<String, JTextCompo
      */
     @Override
     public synchronized String getUIValue() {
-        return WrappedComponent.getText();
+        return getUIComponent().getText();
     }
 
     @Override
     protected synchronized void setTheUIValue(String newValue) {       
-        WrappedComponent.setText(newValue);
+        getUIComponent().setText(newValue);
     }
 
 }

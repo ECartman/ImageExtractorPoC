@@ -20,13 +20,18 @@ import javax.swing.text.JTextComponent;
  *
  * @author Eduardo
  */
-public class MCBoolEditableBind extends MultiCastingSwingBind<Boolean, JTextComponent> {
+public class MCBoolEditableBind extends UniDirBroadcastBind<Boolean, JTextComponent> {
 
     private static final String EDITABLEPROPERTY = "editable";
     private final ReentrantLock LastestValueLock = new ReentrantLock(true);
 
     public MCBoolEditableBind(JTextComponent component_to_Bind, ListenableProperty<Boolean> BindablePojo) {
         super(component_to_Bind, BindablePojo);
+        /**
+         *
+         * for (var WrappedComponent : WrappedComponents) {
+         * BindUIListener(WrappedComponent); }
+         */
     }
 
     @Override
@@ -37,29 +42,17 @@ public class MCBoolEditableBind extends MultiCastingSwingBind<Boolean, JTextComp
 
     @Override
     protected void UnboundUIListener(JTextComponent Component) {
-       // Component.removePropertyChangeListener(MyPropertyListener);
-    }
-
-    /**
-     * returns the Last Value set.
-     *
-     * @return
-     */
-    @Override
-    public Boolean getUIValue() {
-        boolean result;
-        LastestValueLock.lock();
-        try {
-            result = getLinkedComponent().isEditable();
-        } finally {
-            LastestValueLock.unlock();
-        }
-        return result;
+        // Component.removePropertyChangeListener(MyPropertyListener);
     }
 
     @Override
     protected void BindUIListener(JTextComponent Component) {
-       // Component.addPropertyChangeListener(EDITABLEPROPERTY, MyPropertyListener);
+        // Component.addPropertyChangeListener(EDITABLEPROPERTY, MyPropertyListener);
+    }
+
+    @Override
+    protected Boolean getUIValueFor(JTextComponent component) {
+        return component.isEditable();
     }
 
 }

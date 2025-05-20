@@ -13,11 +13,8 @@
 package com.aeongames.edi.utils.visual.UIlink;
 
 import com.aeongames.edi.utils.Pojo.ListenableProperty;
-import com.aeongames.edi.utils.Pojo.PropertyChangeListener;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicBoolean;
 import javax.swing.JComponent;
-import javax.swing.SwingUtilities;
 
 /**
  *
@@ -30,8 +27,8 @@ import javax.swing.SwingUtilities;
  * 1:1
  * <br>
  * meaning it can bind up to 1 POJO and up to 1 UI component. if You need a 1:N
- * binding. please refer to {@link MultiCastingSwingBind} or
- * {@link CachedSwingBind}
+ * binding. please refer to {@link CachedUniDirectionalBind } or
+ * {@link UniDirBroadcastBind}
  * <br>
  * please note that this class does not cache the changes. and does not
  * guarantee that the value would stay unchanged until updated on the UI. (this
@@ -51,42 +48,7 @@ import javax.swing.SwingUtilities;
  * @param <T> Type of Data to Handle
  * @param <C> The Type of UI that subclass from JComponent.
  */
-abstract class BaseBiDirectionalBind<T, C extends JComponent> implements SwingComponentBind<T, C>, PropertyChangeListener<T, ListenableProperty<T>> {
-
-    /**
-     * A flag that notifies if there Bind is attempting to Mutate (change) the
-     * value on either side. (The UI or the POJO)
-     * <br>
-     * and if set and we reenter from the Notification functions that we should
-     * avoid change the value a new in order to avoid infinite Recursion and
-     * Deadlocks.
-     */
-    private final AtomicBoolean MutatingProperty = new AtomicBoolean(false);
-    /**
-     * this flag allow us to determine if the value has changed. and we
-     * requested to be updated Asynchronous (from one thread to the Event
-     * Dispatch) but the Event Dispatch has yet to run the update.
-     */
-    private final AtomicBoolean PendingUpdate = new AtomicBoolean(false);
-    /**
-     * the UnderLine UI Component of type {@code C} that inherits
-     * {@code JComponent} and is bound on this Binding.
-     */
-    protected final C WrappedComponent;
-    /**
-     * the Underline Java Property to bound to the Component. this is a Object
-     * of type {@link ListenableProperty} that has code get, set and listen to
-     * changes on its property.
-     */
-    private final ListenableProperty<T> BoundPojo;
-
-    /**
-     * @throws IllegalCallerException this Constructor Should NEVER be called.
-     * @hidden
-     */
-    private BaseBiDirectionalBind() {
-        throw new IllegalCallerException("illegal construction");
-    }
+non-sealed abstract class BaseBiDirectionalBind<T, C extends JComponent> extends BaseBinder<T, C> {
 
     /**
      * Creates a Instance of {@link BaseBiDirectionalBind} that check for the
@@ -96,11 +58,8 @@ abstract class BaseBiDirectionalBind<T, C extends JComponent> implements SwingCo
      * @param BindablePojo the POJO To bind
      */
     protected BaseBiDirectionalBind(C component_to_Bind, ListenableProperty<T> BindablePojo) {
-        Objects.requireNonNull(component_to_Bind, "the component to link cannot be null");
-        Objects.requireNonNull(BindablePojo, "the component to link cannot be null");
-        WrappedComponent = component_to_Bind;
-        BoundPojo = BindablePojo;
-        bound();
+        super(component_to_Bind, BindablePojo);
+        bind();
     }
 
     /**
@@ -116,7 +75,7 @@ abstract class BaseBiDirectionalBind<T, C extends JComponent> implements SwingCo
      * UI.
      *
      */
-    private void bound() {
+    private final void bind() {
         //before binding. we should check if both have the same value. 
         T POJOvalue = BoundPojo.getValue();
         T UIvalue = getUIValue();
@@ -128,88 +87,12 @@ abstract class BaseBiDirectionalBind<T, C extends JComponent> implements SwingCo
             //Should we update if the values are not null but do not match??? 
         }
         BoundPojo.addPropertyListener(this);
-        BindUIListener();
     }
-
+       
     /**
-     * {@inheritDoc}
+     * we don't consume this nor we want subclasses to consume it. 
      */
-    @Override
-    public final void Unbound() {
-        BoundPojo.RemovePropertyListener(this);
-        UnboundUIListener();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public final C getLinkedComponent() {
-        return WrappedComponent;
-    }
-
-    /**
-     * Handles The Changes From the POJO({@link ListenableProperty}) object
-     * checks if the source is the correct instance.
-     *
-     * @param source the source of the event, on this implementation it
-     * <strong>must</strong> be equals than the BoundPOJO
-     * @param newValue the new Value to set. if this Thread is EDT it will set
-     * this value to the UI directly. otherwise will request a Invocation to
-     * update the UI later on. on which case the value used will be pulled from
-     * the POJO. <br>
-     * <strong>NOTE:</strong> the update can happens later on and the bean might
-     * change its property in between and the current value is what will be set.
-     */
-    @Override
-    public final void propertyChanged(ListenableProperty<T> source, T newValue) {
-        if (source != BoundPojo) {// it must be the same reference.
-            throw new IllegalStateException("the Source does not match the Bound Object");
-        }
-        // in theory BoundPojo.getValue() == newValue but we dont need to check that. 
-        newValue = swapNull(newValue);
-        if (Objects.isNull(newValue) && !allowNullUpdate()) {
-            return;
-        }
-        //if we are running on the EDT. call the process method.
-        //otherwise if not "signaling" signal to process the pending queue. 
-        if (SwingUtilities.isEventDispatchThread()) {
-            SetUIProperty(newValue);
-        } else {
-            //if we have a update booked alredy dont book a new one. 
-            if (PendingUpdate.get()) {
-                return;
-            }
-            PendingUpdate.set(true);
-            SwingUtilities.invokeLater(() -> {
-                SetUIPropertyDelayed(source);
-            });
-        }
-    }
-
-    /**
-     * sets the value to the underline component this should only be trigger by
-     * a Linker
-     *
-     * @param newValue the value to set into the UI
-     * @return if succeeds or not.
-     */
-    protected final boolean SetUIProperty(T newValue) {
-        if (!SwingUtilities.isEventDispatchThread()) {
-            throw new IllegalThreadStateException("this Function can only be called from EDT");
-        }
-        if (MutatingProperty.get()) {
-            return false;
-        }
-        MutatingProperty.set(true);
-        try {
-            setTheUIValue(newValue);
-        } finally {
-            PendingUpdate.set(false);
-            MutatingProperty.set(false);
-        }
-        return true;
-    }
+    protected final void PropertyUpdated(T newValue){}
 
     /**
      * call this function to update the POJO with the current value from the UI.
@@ -237,62 +120,22 @@ abstract class BaseBiDirectionalBind<T, C extends JComponent> implements SwingCo
             MutatingProperty.set(false);
         }
     }
-
-    private void SetUIPropertyDelayed(ListenableProperty<T> source) {
-        if (!SwingUtilities.isEventDispatchThread()) {
-            throw new IllegalThreadStateException("this Function can only be called from EDT");
-        }
-        if (!Objects.equals(BoundPojo, source)) {
-            return;
-        }
-        synchronized (BoundPojo) {
-            MutatingProperty.set(true);
-            try {
-                setTheUIValue(BoundPojo.getValue());
-            } finally {
-                MutatingProperty.set(false);
-            }
-            MutatingProperty.set(false);
-        }
+    
+    /**
+     * gathers the UIComponent for this Binder.
+     * @return the {code C} for this binder.
+     */
+    public C getUIComponent() {
+        return WrappedComponents.get(0);
     }
 
     /**
-     * this Method Defines if we should send Null updates to the UI. in general
-     * terms RARELY you would desire to do that. and thus by default this
-     * function will return false. if your binding. and your UI can Handle
-     * processing Null references as Updates please Override this Function
+     * Gets the Value of {@code T} type. from the UI Component.
      *
-     * @return false by default we ignore changes where the New value is null.
+     * @return the current Property value from this UI Component that is
+     * bounded.
      */
-    protected boolean allowNullUpdate() {
-        return false;
-    }
-
-    /**
-     * this function check if the value is null and if so and calls
-     * {@link #nullRemplacement()} that provide a default value to use instead
-     * of null by default it still returns null and might later on check on
-     * {@link #allowNullUpdate()}
-     *
-     * @param newValue the value to check
-     * @return the value to use if the NewValue is null (the result can still be
-     * null)
-     */
-    private T swapNull(final T newValue) {
-        return Objects.isNull(newValue) ? nullRemplacement() : newValue;
-    }
-
-    /**
-     * returns a instance of {@code T} that is to be used when the newValue sent
-     * from the POJO into the UI is null. null as a result is acceptable
-     *
-     * @return Null by default
-     */
-    protected T nullRemplacement() {
-        return null;
-    }
-
-    protected abstract void setTheUIValue(T newValue);
+    protected abstract T getUIValue();
 
     /**
      * Runs the code that is necessary to bound the Specific UI class to this
@@ -301,11 +144,5 @@ abstract class BaseBiDirectionalBind<T, C extends JComponent> implements SwingCo
      */
     protected abstract void BindUIListener();
 
-    /**
-     * this function is called to Unbound the Listener of the UI to this class.
-     * this is done when the class is not longer required to listen or trigger
-     * data.
-     */
-    protected abstract void UnboundUIListener();
 
 }
