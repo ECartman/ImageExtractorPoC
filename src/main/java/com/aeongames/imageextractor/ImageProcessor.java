@@ -112,8 +112,8 @@ public class ImageProcessor implements FlavorProcessor {
     }
 
     @Override
-    public boolean handleFlavor(DataFlavor flavor, StopSignalProvider stopProvider, Transferable transferData,
-            Clipboard clipboard) {
+    public boolean handleFlavor(DataFlavor flavor, StopSignalProvider stopProvider,
+            Transferable transferData, Clipboard clipboard) {
         Report("A new Request From Clipboard");
         UIStatus(false);
         if (!checkinputs(flavor, stopProvider)) {
@@ -182,6 +182,7 @@ public class ImageProcessor implements FlavorProcessor {
             charBuffer.flip(); // Prepare the CharBuffer for reading
             // data:image/jpeg;base64,iVBORw0KGgoAAAANSUhEUgAA...
             String header = charBuffer.toString().strip();
+            charBuffer.clear();
             Report("Data Header: " + header);
             // Step 3: Check if the header contains the expected pattern
             if (header.startsWith("data:image/")) {
@@ -199,6 +200,9 @@ public class ImageProcessor implements FlavorProcessor {
                 if (header.length() > 0) {
                     pushbackStream.unread(header.getBytes(charEncoding));
                 }
+            } else {
+                pushbackStream.unread(buffer);
+                // the data did not match return all the data to the Stream
             }
             Report("Finish With Metadata Check");
             if (stopProvider.isStopSignalReceived()) {
@@ -216,7 +220,13 @@ public class ImageProcessor implements FlavorProcessor {
                 DigestInputStream digestStream = new DigestInputStream(base64Decoded, Hasher);
                 digestStream.on(true);
                 Report("Reading the Image...");
-                var image = ImageIO.read(digestStream);
+                StringBuilder type = new StringBuilder();
+                var image = readImageFromStream(digestStream, type);
+                if (imageType == null) {
+                    imageType = type.toString();
+                    InfoLink.ImageTypeString.setValue(imageType);
+                }
+                Report("Image Type from Metadata: " + type.toString());
                 Report("Completed Reading the Image...");
                 Report(image);
                 if (stopProvider.isStopSignalReceived()) {
@@ -227,15 +237,14 @@ public class ImageProcessor implements FlavorProcessor {
                 var signature = ByteUtils.ByteArrayToString(digestStream.getMessageDigest().digest());
                 reportCheckSum(signature);
                 if (Signatures.contains(signature)) {
-                    // we alredy had process this image.
-                    // do some notification??
+                    Report("the File was Alredy Recoded Before. thus we Skip Saving this one.");
                     UIStatus(true);
                     return true;// we dont need to safe it. again.
                 }
                 Signatures.add(signature);
                 // test
                 if (image != null) {
-                    final Path FilePath = GetNextFile(imageType);                    
+                    final Path FilePath = GetNextFile(imageType);
                     Report("Recording File:");
                     Report(FilePath.toString());
                     var imgResult = ImageIO.write(image, imageType,
@@ -341,7 +350,20 @@ public class ImageProcessor implements FlavorProcessor {
     }
 
     private void Report(BufferedImage image) {
-       
+        InfoLink.ImageProperty.setValue(image);
+    }
+
+    private BufferedImage readImageFromStream(DigestInputStream digestStream, StringBuilder type) throws IOException {
+        BufferedImage img = null;
+        var iis = ImageIO.createImageInputStream(digestStream);
+        var readers = ImageIO.getImageReaders(iis);
+        if (readers.hasNext()) {
+            var reader = readers.next();
+            type.append(reader.getFormatName());
+            reader.setInput(iis, true);
+            img = reader.read(0);
+        }
+        return img;
     }
 
     /**

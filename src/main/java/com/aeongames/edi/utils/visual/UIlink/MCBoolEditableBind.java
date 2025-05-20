@@ -13,7 +13,6 @@
 package com.aeongames.edi.utils.visual.UIlink;
 
 import com.aeongames.edi.utils.Pojo.ListenableProperty;
-import java.util.concurrent.locks.ReentrantLock;
 import javax.swing.text.JTextComponent;
 
 /**
@@ -23,7 +22,6 @@ import javax.swing.text.JTextComponent;
 public class MCBoolEditableBind extends UniDirBroadcastBind<Boolean, JTextComponent> {
 
     private static final String EDITABLEPROPERTY = "editable";
-    private final ReentrantLock LastestValueLock = new ReentrantLock(true);
 
     public MCBoolEditableBind(JTextComponent component_to_Bind, ListenableProperty<Boolean> BindablePojo) {
         super(component_to_Bind, BindablePojo);

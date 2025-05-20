@@ -13,7 +13,6 @@
 package com.aeongames.edi.utils.visual.UIlink;
 
 import com.aeongames.edi.utils.Pojo.ListenableProperty;
-import java.util.concurrent.locks.ReentrantLock;
 import javax.swing.JComponent;
 
 /**
@@ -23,7 +22,6 @@ import javax.swing.JComponent;
 public class MCBoolCompEnableBind extends UniDirBroadcastBind<Boolean, JComponent> {
 
     private static final String ENABLEDPROPERTY = "enabled";
-    private final ReentrantLock LastestValueLock = new ReentrantLock(true);
 
     public MCBoolCompEnableBind(JComponent component_to_Bind, ListenableProperty<Boolean> BindablePojo) {
         super(component_to_Bind, BindablePojo);

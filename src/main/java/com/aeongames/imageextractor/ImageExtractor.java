@@ -13,6 +13,7 @@
 package com.aeongames.imageextractor;
 
 import com.aeongames.edi.utils.Clipboard.ClipboardService;
+import com.aeongames.edi.utils.visual.UIlink.ImagePanelBinding;
 import com.aeongames.edi.utils.visual.UIlink.JLabelComponentBind;
 import com.aeongames.edi.utils.visual.UIlink.JSpinnerComponentBind;
 import com.aeongames.edi.utils.visual.UIlink.JtextComponentAppendUpdateBind;
@@ -32,7 +33,6 @@ import javax.swing.JFileChooser;
  * @author Eduardo Vindas
  */
 public class ImageExtractor extends javax.swing.JFrame {
-
     private final ClipboardService MainListener;
     private final ImageProcessor MyProcessor;
 
@@ -183,17 +183,6 @@ public class ImageExtractor extends javax.swing.JFrame {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
-    private void SetControlsEnablement(boolean enabled) {
-        /*
-        txtlistenedData.setEditable(enabled);
-        txtlistenedData.setEnabled(enabled);
-        btProcessdata.setEnabled(enabled);
-        btsave.setEnabled(enabled);
-        btauto.setEnabled(enabled);
-        btautodecript.setEnabled(enabled);
-        PBstate.setIndeterminate(!enabled);*/
-    }
-
 
     private void btsaveActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btsaveActionPerformed
         JFileChooser chs = new JFileChooser(Paths.get(System.getProperty("user.home"), "Downloads").toFile());
@@ -210,7 +199,6 @@ public class ImageExtractor extends javax.swing.JFrame {
             txtfolder.setText(Paths.get(System.getProperty("user.home"), "Downloads").toString());
         }
         MyProcessor.updateSafePath(Path.of(txtfolder.getText()));
-
     }//GEN-LAST:event_btsaveActionPerformed
 
     /**
@@ -269,6 +257,8 @@ public class ImageExtractor extends javax.swing.JFrame {
         JLabelComponentBind labelDigest= new JLabelComponentBind(txtstatusbar,  ProcessingInformationDisplay.LastFileCheckSum);
         JtextComponentBind BindFilePath = new JtextComponentBind(txtfolder, ProcessingInformationDisplay.SavingFilePath);
         JSpinnerComponentBind BinFileNameSpinner =  new JSpinnerComponentBind(FileSpiner, ProcessingInformationDisplay.CurrentFileNumber);
+        ProcessingInformationDisplay.CurrentFileNumber.setValue((Integer)FileSpiner.getModel().getValue());
+        ImagePanelBinding ImageBind = new ImagePanelBinding(PImage,ProcessingInformationDisplay.ImageProperty);
         binding.addComponent(txtLog);
         binding2.addComponent(FileSpiner);
         if (MainListener.isProcessingTask() || MainListener.isServiceOnline()) {
@@ -277,18 +267,8 @@ public class ImageExtractor extends javax.swing.JFrame {
         }
         MainListener.addFlavorHandler(MyProcessor, MyProcessor.mySupportedFlavor());
         MainListener.StartClipBoardService();
-        /*
-        new Thread(() -> {
-            while (true) {
-                try {
-                    Thread.sleep(500);
-                } catch (InterruptedException ex) {
-                    Logger.getLogger(ImageExtractor.class.getName()).log(Level.SEVERE, null, ex);
-                }
-                ProcessingInformationDisplay.CurrentUIEnablement.setValue(!ProcessingInformationDisplay.CurrentUIEnablement.getValue());
-                
-            }
-        }).start();*/
+
+        //PBstate.setIndeterminate(!enabled)
     }
 
 }

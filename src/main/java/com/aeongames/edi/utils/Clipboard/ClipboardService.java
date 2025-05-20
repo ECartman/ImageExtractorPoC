@@ -20,8 +20,6 @@ import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.FlavorEvent;
 import java.awt.datatransfer.FlavorListener;
 import java.awt.datatransfer.Transferable;
-import java.awt.datatransfer.UnsupportedFlavorException;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Objects;
@@ -793,13 +791,13 @@ public final class ClipboardService implements Runnable, FlavorListener, Clipboa
             //as there are some enconding and reconding that could be happening.
             //to avoid delays lets Wrap it on one that support faster processing
             //using Streams. 
-
+            /*
             final var UnderlineTrasferible = t;
             // Create a custom Transferable for byte[] data
             t = new Transferable() {
                 private final LinkedHashSet<DataFlavor> StreamFlavored = new LinkedHashSet<>();
 
-                @SuppressWarnings("deprecation")/*ignore. when java remove it we remove the specific part that we need to check*/
+                @SuppressWarnings("deprecation")//ignore. when java remove it we remove the specific part that we need to check
                 private void populateFlavors() {
                     if (StreamFlavored.isEmpty()) {
                         //first check if the flavor that is native to the ENV is supported and listed. 
@@ -841,6 +839,7 @@ public final class ClipboardService implements Runnable, FlavorListener, Clipboa
             if (t.getTransferDataFlavors().length == 0) {
                 t = UnderlineTrasferible;
             }
+            */
             SYSTEM_CLIPBOARD.setContents(t, this);
             Owner.set(true);
         } catch (Throwable e) {
