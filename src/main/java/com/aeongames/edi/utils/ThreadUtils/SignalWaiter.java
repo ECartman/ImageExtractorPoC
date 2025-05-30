@@ -28,7 +28,7 @@ public class SignalWaiter {
             try {
                 wait();
             } catch (InterruptedException e) {
-//                        System.err.println("Exepcion");
+                //LoggingHelper.getClassLoggerForMe().log(Level.SEVERE, "Interrupted", e);
             }
         }
 

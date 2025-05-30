@@ -16,6 +16,7 @@ import com.aeongames.edi.utils.common.CharsetCompatibilityChecker;
 import com.aeongames.edi.utils.Clipboard.FlavorProcessor;
 import com.aeongames.edi.utils.ThreadUtils.StopSignalProvider;
 import com.aeongames.edi.utils.common.ByteUtils;
+import com.aeongames.edi.utils.common.SkipInputStream;
 import com.aeongames.edi.utils.error.LoggingHelper;
 import com.aeongames.imageextractor.Pojo.ProgressObject;
 import java.awt.datatransfer.Clipboard;
@@ -39,7 +40,6 @@ import java.nio.file.StandardOpenOption;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.Objects;
 import java.util.logging.Level;
@@ -160,7 +160,7 @@ public class ImageProcessor implements FlavorProcessor {
             Report("Reading The Clipboard Into JVM");
             TrasferableDataStream = (InputStream) transferData.getTransferData(flavor);
         } catch (UnsupportedFlavorException | IOException ex) {
-            LoggingHelper.getLogger(ImageProcessor.class.getName()).log(Level.SEVERE, null, ex);
+            LoggingHelper.getLogger(ImageProcessor.class.getName()).log(Level.SEVERE, "Unable to pull the TransferData with the registered Flavor.", ex);
             reportError(ex);
         }
         return TrasferableDataStream;
@@ -249,11 +249,8 @@ public class ImageProcessor implements FlavorProcessor {
     }
 
     private DigestInputStream getWrappedStream(PushbackInputStream pushbackStream, Charset charEncoding) {
-        var minBytesPerChar = (int) Math.floor(charEncoding.newEncoder().averageBytesPerChar());
-        var base64Decoded = Base64.getDecoder()
-                .wrap(new SkippingIS(pushbackStream, charEncoding, minBytesPerChar));
         Hasher.reset();// ensure we are starting fresh.
-        DigestInputStream digestStream = new DigestInputStream(base64Decoded, Hasher);
+        var digestStream = SkipInputStream.getWrappedStream(pushbackStream, charEncoding, Hasher);
         digestStream.on(true);
         return digestStream;
     }
@@ -440,94 +437,6 @@ public class ImageProcessor implements FlavorProcessor {
                 Report("Completed Reading the Image...");
             }
             InfoLink.ImageTypeString.setValue(TypeBuilder.toString());
-        }
-    }
-
-    /**
-     * we need a input stream that constantly skips a certain amount of bytes or
-     * ignores them
-     *
-     */
-    private class SkippingIS extends InputStream {
-
-        private final transient Charset DataCharset;
-        private final transient boolean isbigEdian;
-        private final transient int BytesperData;
-        private final InputStream wrappedstream;
-
-        private SkippingIS(InputStream IS, Charset charset, int bytes) {
-            wrappedstream = IS;
-            BytesperData = bytes;
-            DataCharset = charset;
-            isbigEdian = CharsetCompatibilityChecker.RemoveBOM(DataCharset, String.valueOf('A').getBytes(charset));
-        }
-
-        @Override
-        public int read() throws IOException {
-            // the minimal read we do is 1 byte.
-            // but to do so we need to read BytesperData
-            // to gather it.
-            // to gather the byte we desire we need to either read the first one
-            // or read the last one (due Edianess)
-            // to do so efficiently we read a single byte or skipping and then reading
-            if (isbigEdian) {
-                wrappedstream.skip(BytesperData - 1);
-            }
-            var data = wrappedstream.read();
-            if (!isbigEdian) {
-                wrappedstream.skip(BytesperData - 1);
-            }
-            return data;
-        }
-
-        @Override
-        public int available() throws IOException {
-            return wrappedstream.available();
-        }
-
-        @Override
-        public void close() throws IOException {
-            wrappedstream.close();
-        }
-
-        @Override
-        public boolean markSupported() {
-            return wrappedstream.markSupported();
-        }
-
-        @Override
-        protected Object clone() throws CloneNotSupportedException {
-            throw new CloneNotSupportedException("not allowed");
-        }
-
-        @Override
-        public void mark(int readlimit) {
-            wrappedstream.mark(readlimit);
-        }
-
-        @Override
-        public void reset() throws IOException {
-            wrappedstream.reset();
-        }
-
-        @Override
-        public int read(byte[] b, int off, int len) throws IOException {
-            Objects.checkFromIndexSize(off, len, b.length);
-            byte Buffer[] = new byte[len * BytesperData];
-            var results = wrappedstream.read(Buffer);
-            if (results == -1) {
-                return results;
-            }
-            for (int index = 0; index < results; index += BytesperData) {
-                var offset = isbigEdian ? BytesperData - 1 : 0;
-                b[off++] = Buffer[index + offset];
-            }
-            return results;
-        }
-
-        @Override
-        public long skip(long n) throws IOException {
-            return wrappedstream.skip(BytesperData * n);
         }
     }
 
