@@ -31,8 +31,6 @@ import java.io.StringWriter;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
-import java.nio.charset.CharsetDecoder;
-import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -42,7 +40,7 @@ import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
-import java.util.LinkedList;
+import java.util.HashMap;
 import java.util.Objects;
 import java.util.logging.Level;
 import javax.imageio.ImageIO;
@@ -65,8 +63,10 @@ import javax.imageio.ImageIO;
  */
 public class ImageProcessor implements FlavorProcessor {
 
+    private static final int PUSHBACK_BUFFER = 4096;
+    private static final int METADATA_CHUNK = 32;
     private transient Path SafeLocation;
-    private LinkedList<String> Signatures;
+    private HashMap<String, String> SignaturesFile;
     private static final DataFlavor[] PROCESSORFLAVOR = new DataFlavor[]{DataFlavor.getTextPlainUnicodeFlavor()};
     private final MessageDigest Hasher;
     private ProgressObject InfoLink;
@@ -82,7 +82,7 @@ public class ImageProcessor implements FlavorProcessor {
         InfoLink = new ProgressObject();
         RegisterForPathChanges();
         SafeLocation = safePath;
-        Signatures = new LinkedList<>();
+        SignaturesFile = new HashMap<>();
         MessageDigest resultHasher = null;
         try {
             resultHasher = MessageDigest.getInstance("SHA-256");
@@ -111,41 +111,66 @@ public class ImageProcessor implements FlavorProcessor {
         return PROCESSORFLAVOR;
     }
 
-    @Override
-    public boolean handleFlavor(DataFlavor flavor, StopSignalProvider stopProvider,
-            Transferable transferData, Clipboard clipboard) {
+    private void reportNewRequest() {
+        Report("///-------------------------------------------------------///");
         Report("A new Request From Clipboard");
         UIStatus(false);
+    }
+
+    private boolean isThisForUs(DataFlavor flavor, StopSignalProvider stopProvider) {
         if (!checkinputs(flavor, stopProvider)) {
             Report("Not for us");
             UIStatus(true);
             return false;
         }
+        return true;
+    }
+
+    private boolean checkinputs(DataFlavor flavor, StopSignalProvider stopProvider) {
+        // asure that we are not to stop processing
+        if (stopProvider.isStopSignalReceived()) {
+            return false;
+        }
+        // there should be no way this was modified. at the current implm.
+        // however for sake of safety.
+        if (!mySupportedFlavorSupport(flavor)) {
+            return false;
+        }
+        // assure that the Flavor can be handled Correctly here.
+        // and if not return false as we cannot handle.
+        return flavor.isRepresentationClassInputStream();
+    }
+
+    private boolean shouldStop(StopSignalProvider stopProvider) {
+        if (stopProvider.isStopSignalReceived()) {
+            UIStatus(true);
+            return true;
+        }
+        return false;
+    }
+
+    private void reportFailure(String message) {
+        Report(message);
+        UIStatus(true);
+    }
+
+    private InputStream OpenClipboard(Transferable transferData, DataFlavor flavor) {
         InputStream TrasferableDataStream = null;
         try {
             Report("Reading The Clipboard Into JVM");
             TrasferableDataStream = (InputStream) transferData.getTransferData(flavor);
-            if (stopProvider.isStopSignalReceived()) {
-                UIStatus(true);
-                return false;
-            }
         } catch (UnsupportedFlavorException | IOException ex) {
             LoggingHelper.getLogger(ImageProcessor.class.getName()).log(Level.SEVERE, null, ex);
             reportError(ex);
         }
-        // did we managed to get the Stream? otherwise this will fail
-        if (Objects.isNull(TrasferableDataStream)) {
-            Report("Could Not Read The Clipboard");
-            UIStatus(true);
-            return false;
-        }
+        return TrasferableDataStream;
+    }
+
+    private PushbackInputStream processMetadata(Charset charset, InputStream TrasferableDataStream, StringBuilder TypeBuilder) {
         // Now we need to manually process the data. this is because we want to do
         // several things with the data.
         // first
         Report("checking Metadata");
-        var charEncoding = Charset.forName(flavor.getParameter("charset")); // try to get what charset we are using.
-        CharsetDecoder decoder = charEncoding.newDecoder();
-        CharsetEncoder encoder = charEncoding.newEncoder();
         // if 1 we can bypass the encoding process. and pass on the BASE64 decoder to
         // the stream.
         // otherwise we need to read the bytes and then decode them. and then encode
@@ -163,33 +188,39 @@ public class ImageProcessor implements FlavorProcessor {
         // it expect single byte characters. (e.g., UTF-8) or more specifically, ASCII.
         // (0x00-0x7F) on our case 0x41 is the letter A.
         // now you might think, but all of them are the same value
+        var encoder = charset.newEncoder();
+        var decoder = charset.newDecoder();
         var minBytesPerChar = (int) Math.floor(encoder.averageBytesPerChar());
-        try (PushbackInputStream pushbackStream = new PushbackInputStream(TrasferableDataStream, 8_192)) {
-            // Step 1: Read a portion of the stream
-            byte[] buffer = new byte[minBytesPerChar * 64]; // Read a small chunk for analysis
+        PushbackInputStream pushbackStream = new PushbackInputStream(TrasferableDataStream, PUSHBACK_BUFFER);
+        try {
+            byte[] buffer = new byte[minBytesPerChar * METADATA_CHUNK]; // Read a small chunk for analysis
             int bytesRead = pushbackStream.read(buffer);
             if (bytesRead == -1) {
-                Report("Clipboard Data is not Enought");
+                Report("Clipboard Data is shorter than expected or not avail");
                 UIStatus(true);
-                return false;
+                pushbackStream.close();
+                return null;
             }
-            String imageType = null;
             // Step 2: Decode the bytes using the specified charset
             Report("Decoding Metadata from the Clipboard initial chunk");
             ByteBuffer byteBuffer = ByteBuffer.wrap(buffer, 0, bytesRead);
-            CharBuffer charBuffer = CharBuffer.allocate(64); // Allocate enough space for characters
+            CharBuffer charBuffer = CharBuffer.allocate(METADATA_CHUNK); // Allocate enough space for characters
             CoderResult result = decoder.decode(byteBuffer, charBuffer, true);
             charBuffer.flip(); // Prepare the CharBuffer for reading
-            // data:image/jpeg;base64,iVBORw0KGgoAAAANSUhEUgAA...
             String header = charBuffer.toString().strip();
             charBuffer.clear();
             Report("Data Header: " + header);
-            // Step 3: Check if the header contains the expected pattern
+            // data:image/jpeg;base64,iVBORw0KGgoAAAANSUhEUgAA...
             if (header.startsWith("data:image/")) {
                 int lastCharofHeader = header.indexOf(",");
-                imageType = header.substring(11, lastCharofHeader);
+                var imageType = header.substring(11, lastCharofHeader);
                 InfoLink.ImageTypeString.setValue(imageType);
                 imageType = SimpleImageType(imageType);
+                if (Objects.isNull(imageType)) {
+                    Report("Image String Data does not Report its type. we will asume is base64");
+                } else {
+                    TypeBuilder.append(imageType);
+                }
                 header = header.substring(lastCharofHeader + 1); // Extract the Base64 part
                 // Step 4: Push back the remaining bytes
                 int remainingBytes = byteBuffer.remaining(); // Bytes not yet decoded
@@ -198,63 +229,110 @@ public class ImageProcessor implements FlavorProcessor {
                 }
                 // now return the non header part back to the stream.
                 if (header.length() > 0) {
-                    pushbackStream.unread(header.getBytes(charEncoding));
+                    pushbackStream.unread(header.getBytes(charset));
                 }
             } else {
                 pushbackStream.unread(buffer);
                 // the data did not match return all the data to the Stream
             }
+            return pushbackStream;
+        } catch (IOException ex) {
+            try {
+                pushbackStream.close();
+            } catch (IOException err) {
+            }
+            LoggingHelper.getLogger(ImageProcessor.class.getName()).log(Level.SEVERE, null, ex);
+            reportError(ex);
+            UIStatus(true);
+            return null;
+        }
+    }
+
+    private DigestInputStream getWrappedStream(PushbackInputStream pushbackStream, Charset charEncoding) {
+        var minBytesPerChar = (int) Math.floor(charEncoding.newEncoder().averageBytesPerChar());
+        var base64Decoded = Base64.getDecoder()
+                .wrap(new SkippingIS(pushbackStream, charEncoding, minBytesPerChar));
+        Hasher.reset();// ensure we are starting fresh.
+        DigestInputStream digestStream = new DigestInputStream(base64Decoded, Hasher);
+        digestStream.on(true);
+        return digestStream;
+    }
+
+    @Override
+    public boolean handleFlavor(DataFlavor flavor, StopSignalProvider stopProvider,
+            Transferable transferData, Clipboard clipboard) {
+        reportNewRequest();
+        if (!isThisForUs(flavor, stopProvider)) {
+            return false;
+        }
+        InputStream TrasferableDataStream = OpenClipboard(transferData, flavor);
+        if (Objects.isNull(TrasferableDataStream)) {
+            reportFailure("Could Not Read The Clipboard");
+            return false;
+        }
+        if (shouldStop(stopProvider)) {
+            if (TrasferableDataStream != null) {
+                try {
+                    TrasferableDataStream.close();
+                } catch (IOException err) {
+                }
+            }
+            return false;
+        }
+        var charEncoding = Charset.forName(flavor.getParameter("charset")); // try to get what charset we are using.
+        StringBuilder TypeBuilder = new StringBuilder();
+        PushbackInputStream pushbackStream = processMetadata(charEncoding, TrasferableDataStream, TypeBuilder);
+        if (Objects.isNull(pushbackStream)) {
+            reportFailure("Could Not Read the metadata");
+            return false;
+        }
+        try (pushbackStream) {
             Report("Finish With Metadata Check");
-            if (stopProvider.isStopSignalReceived()) {
+            if (shouldStop(stopProvider)) {
+                return false;
+            }
+            Report("Testing Base64 Decoding");
+            if (!CharsetCompatibilityChecker.charsetCompatibleWithBase64(charEncoding)) {
+                Report("Charset is NOT compatible with Base64");
                 UIStatus(true);
                 return false;
             }
-            // Step 5 : check if the CharSet is compatible with the one for Base64
-            Report("Testing Base64 Decoding");
-            if (CharsetCompatibilityChecker.charsetCompatibleWithBase64(charEncoding)) {
-                Report("Charset is compatible with Base64");
-                Report("Setting the Checksum subsStream");
-                var base64Decoded = Base64.getDecoder()
-                        .wrap(new SkippingIS(pushbackStream, charEncoding, minBytesPerChar));
-                Hasher.reset();// ensure we are starting fresh.
-                DigestInputStream digestStream = new DigestInputStream(base64Decoded, Hasher);
-                digestStream.on(true);
-                Report("Reading the Image...");
-                StringBuilder type = new StringBuilder();
-                var image = readImageFromStream(digestStream, type);
-                if (imageType == null) {
-                    imageType = type.toString();
-                    InfoLink.ImageTypeString.setValue(imageType);
-                }
-                Report("Image Type from Metadata: " + type.toString());
-                Report("Completed Reading the Image...");
+            Report("Charset is compatible with Base64, setting up to Read Image");
+            DigestInputStream digestStream = getWrappedStream(pushbackStream, charEncoding);
+            Report("Reading the Image...");
+            StringBuilder type = new StringBuilder();
+            var image = readImageFromStream(digestStream, type);
+            getImageTypeFinal(TypeBuilder, type);//this might return a empty string? but is so image would be null most likely.
+            if (Objects.nonNull(image)) {
                 Report(image);
-                if (stopProvider.isStopSignalReceived()) {
-                    UIStatus(true);
-                    return false;
-                }
+            }
+            if (shouldStop(stopProvider)) {
+                return false;
+            }
+            if (image != null) {
                 Report("Calculating Checksum");
                 var signature = ByteUtils.ByteArrayToString(digestStream.getMessageDigest().digest());
-                reportCheckSum(signature);
-                if (Signatures.contains(signature)) {
-                    Report("the File was Alredy Recoded Before. thus we Skip Saving this one.");
+                if (SignaturesFile.containsKey(signature)) {
+                    reportCheckSum(signature, SignaturesFile.get(signature));
+                    Report("File Alredy Recorded.");
                     UIStatus(true);
                     return true;// we dont need to safe it. again.
                 }
-                Signatures.add(signature);
-                // test
-                if (image != null) {
-                    final Path FilePath = GetNextFile(imageType);
-                    Report("Recording File:");
-                    Report(FilePath.toString());
-                    var imgResult = ImageIO.write(image, imageType,
-                            Files.newOutputStream(FilePath, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE));
-                    tickFileSpinner();
-                    UIStatus(true);
-                    return imgResult;
+                final Path FilePath = GetNextFile(TypeBuilder.toString());
+                reportCheckSum(signature, FilePath.toString());
+                var imgResult = ImageIO.write(image, TypeBuilder.toString(),
+                        Files.newOutputStream(FilePath, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE));
+                if (imgResult) {
+                    Report("File saved.");
+                    //we only report the signature if we sucesfully recorded the file. 
+                    SignaturesFile.put(signature, FilePath.toString());
                 }
+                tickFileSpinner();
+                UIStatus(true);
+                return imgResult;
             } else {
-                Report("Charset is NOT compatible with Base64");
+                Report("No image data. flushing the Checksum");
+                Hasher.reset();// flush the data we dont need it. 
             }
         } catch (IOException ex) {
             LoggingHelper.getLogger(ImageProcessor.class.getName()).log(Level.SEVERE, null, ex);
@@ -292,21 +370,6 @@ public class ImageProcessor implements FlavorProcessor {
         });
     }
 
-    private boolean checkinputs(DataFlavor flavor, StopSignalProvider stopProvider) {
-        // asure that we are not to stop processing
-        if (stopProvider.isStopSignalReceived()) {
-            return false;
-        }
-        // there should be no way this was modified. at the current implm.
-        // however for sake of safety.
-        if (!mySupportedFlavorSupport(flavor)) {
-            return false;
-        }
-        // assure that the Flavor can be handled Correctly here.
-        // and if not return false as we cannot handle.
-        return flavor.isRepresentationClassInputStream();
-    }
-
     private boolean mySupportedFlavorSupport(DataFlavor flavor) {
         for (DataFlavor dataFlavor : mySupportedFlavor()) {
             if (dataFlavor != null && dataFlavor.equals(flavor)) {
@@ -324,9 +387,10 @@ public class ImageProcessor implements FlavorProcessor {
         InfoLink.CurrentStatus.setValue(message.concat("\n"));
     }
 
-    private void reportCheckSum(String checksum) {
-        Report("Checksum: " + checksum);
-        InfoLink.LastFileCheckSum.setValue(checksum);
+    private void reportCheckSum(String checksum, String file) {
+        var str = String.format("File: %s ; Checksum %s", file, checksum);
+        Report(str);
+        InfoLink.LastFileCheckSum.setValue(str);
     }
 
     private void UIStatus(boolean state) {
@@ -343,8 +407,6 @@ public class ImageProcessor implements FlavorProcessor {
     private String SimpleImageType(String imageType) {
         if (imageType != null) {
             imageType = imageType.toLowerCase().contains("png") ? "png" : "jpg";
-        } else {
-            imageType = "png";
         }
         return imageType;
     }
@@ -364,6 +426,21 @@ public class ImageProcessor implements FlavorProcessor {
             img = reader.read(0);
         }
         return img;
+    }
+
+    private void getImageTypeFinal(StringBuilder TypeBuilder, StringBuilder type) {
+        if (TypeBuilder.isEmpty() || TypeBuilder.toString().strip().isBlank()) {
+            Report("Image String Metadata does not report the format or type. we assume Base64 full file");
+            TypeBuilder.append(type);
+            if (TypeBuilder.isEmpty() || TypeBuilder.toString().strip().isBlank()) {
+                TypeBuilder.append("No Image data");
+                Report("The data does not seem to represent a Image.");
+            } else {
+                Report("Image Type from Metadata: " + type.toString());
+                Report("Completed Reading the Image...");
+            }
+            InfoLink.ImageTypeString.setValue(TypeBuilder.toString());
+        }
     }
 
     /**

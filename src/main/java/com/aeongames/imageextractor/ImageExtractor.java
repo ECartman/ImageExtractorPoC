@@ -91,7 +91,7 @@ public class ImageExtractor extends javax.swing.JFrame {
 
         jLabel5.setText("Current Page:");
 
-        FileSpiner.setModel(new javax.swing.SpinnerNumberModel(226, 0, null, 1));
+        FileSpiner.setModel(new javax.swing.SpinnerNumberModel(302, 0, null, 1));
 
         jLabel3.setText("Image Type:");
 
