@@ -118,7 +118,7 @@ public final class Properties_File {
     public Properties_File(Path FilePath) {
         Objects.requireNonNull(FilePath, "the Path cannot be null");
         //lets check whenver or not the file defined by path is xml 
-        Name = FilePath.getFileName().toString().strip() + RUNTIMEID;
+        Name = FilePath.getFileName().toString().strip();
         ReadedFromXML = Name.toLowerCase().endsWith(".xml");
         if (Files.exists(FilePath, LinkOption.NOFOLLOW_LINKS) && !Files.isRegularFile(FilePath, LinkOption.NOFOLLOW_LINKS)) {
             //directory or link. likely the caller just want to dump properties to this dir. we cant do that from here throw up
