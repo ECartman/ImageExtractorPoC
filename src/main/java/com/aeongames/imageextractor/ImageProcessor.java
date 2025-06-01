@@ -214,7 +214,7 @@ public class ImageProcessor implements FlavorProcessor {
             if (header.startsWith("data:image/")) {
                 int lastCharofHeader = header.indexOf(",");
                 var imageType = header.substring(11, lastCharofHeader);
-                InfoLink.ImageTypeString.setValue(imageType);
+                InfoLink.setImageTypeString(imageType);
                 imageType = SimpleImageType(imageType);
                 if (Objects.isNull(imageType)) {
                     Report("Image String Data does not Report its type. we will asume is base64");
@@ -351,19 +351,18 @@ public class ImageProcessor implements FlavorProcessor {
     }
 
     private synchronized Path GetNextFile(String imageType) {
-        var nextfile = InfoLink.CurrentFileNumber.getValue().toString();
+        var nextfile = InfoLink.getFileNumber().toString();
         var FilePath = SafeLocation.resolve(String.format("%s.%s", nextfile, imageType));
         return FilePath;
     }
 
     private synchronized void tickFileSpinner() {
-        InfoLink.CurrentFileNumber.plusplus();
+        InfoLink.fileNumberpplus();
     }
 
     private void RegisterForPathChanges() {
-        InfoLink.SavingFilePath.addPropertyListener((Source, newValue) -> {
+        InfoLink.registerSavingFilePath((Source, newValue) -> {
             var success = updateSafePath(Paths.get(newValue));
-
         });
     }
 
@@ -381,17 +380,17 @@ public class ImageProcessor implements FlavorProcessor {
     }
 
     private void Report(String message) {
-        InfoLink.CurrentStatus.setValue(message.concat("\n"));
+        InfoLink.updateStatus(message.concat("\n"));
     }
 
     private void reportCheckSum(String checksum, String file) {
         var str = String.format("File: %s ; Checksum %s", file, checksum);
         Report(str);
-        InfoLink.LastFileCheckSum.setValue(str);
+        InfoLink.setStatus(str);
     }
 
     private void UIStatus(boolean state) {
-        InfoLink.CurrentUIEnablement.setValue(state);
+        InfoLink.setUIEnablement(state);
     }
 
     private void reportError(Throwable err) {
@@ -409,7 +408,7 @@ public class ImageProcessor implements FlavorProcessor {
     }
 
     private void Report(BufferedImage image) {
-        InfoLink.ImageProperty.setValue(image);
+        InfoLink.setImageData(image);
     }
 
     private BufferedImage readImageFromStream(DigestInputStream digestStream, StringBuilder type) throws IOException {
@@ -436,7 +435,7 @@ public class ImageProcessor implements FlavorProcessor {
                 Report("Image Type from Metadata: " + type.toString());
                 Report("Completed Reading the Image...");
             }
-            InfoLink.ImageTypeString.setValue(TypeBuilder.toString());
+            InfoLink.setImageTypeString(TypeBuilder.toString());
         }
     }
 

@@ -20,11 +20,22 @@ import javax.swing.text.JTextComponent;
  * @author Eduardo
  */
 public class MCBoolEditableBind extends UniDirBroadcastBind<Boolean, JTextComponent> {
-
+    private final boolean negated;
     private static final String EDITABLEPROPERTY = "editable";
 
     public MCBoolEditableBind(JTextComponent component_to_Bind, ListenableProperty<Boolean> BindablePojo) {
         super(component_to_Bind, BindablePojo);
+        negated=false;
+        /**
+         *
+         * for (var WrappedComponent : WrappedComponents) {
+         * BindUIListener(WrappedComponent); }
+         */
+    }
+    
+    public MCBoolEditableBind(JTextComponent component_to_Bind, ListenableProperty<Boolean> BindablePojo, boolean negated) {
+        super(component_to_Bind, BindablePojo);
+        this.negated=negated;
         /**
          *
          * for (var WrappedComponent : WrappedComponents) {
@@ -34,8 +45,8 @@ public class MCBoolEditableBind extends UniDirBroadcastBind<Boolean, JTextCompon
 
     @Override
     protected void setTheUIValue(JTextComponent Component, Boolean newValue) {
-        Component.setEditable(newValue);
-        Component.setEnabled(newValue);
+        Component.setEditable(negated ? !newValue : newValue);
+        Component.setEnabled(negated ? !newValue : newValue);
     }
 
     @Override

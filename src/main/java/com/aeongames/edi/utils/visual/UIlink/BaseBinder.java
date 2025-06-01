@@ -40,7 +40,7 @@ import javax.swing.SwingUtilities;
  * @param <T> Type of Data to Handle
  * @param <C> The Type of UI that subclass from JComponent.
  */
-abstract sealed class BaseBinder<T, C extends JComponent> implements PropertyChangeListener<T, ListenableProperty<T>>
+public abstract sealed class BaseBinder<T, C extends JComponent> implements PropertyChangeListener<T, ListenableProperty<T>>
         permits BaseBiDirectionalBind, CachedUniDirectionalBind,UniDirBroadcastBind {
 
     /**

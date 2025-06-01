@@ -13,13 +13,6 @@
 package com.aeongames.imageextractor;
 
 import com.aeongames.edi.utils.Clipboard.ClipboardService;
-import com.aeongames.edi.utils.visual.UIlink.ImagePanelBinding;
-import com.aeongames.edi.utils.visual.UIlink.JLabelComponentBind;
-import com.aeongames.edi.utils.visual.UIlink.JSpinnerComponentBind;
-import com.aeongames.edi.utils.visual.UIlink.JtextComponentAppendUpdateBind;
-import com.aeongames.edi.utils.visual.UIlink.JtextComponentBind;
-import com.aeongames.edi.utils.visual.UIlink.MCBoolCompEnableBind;
-import com.aeongames.edi.utils.visual.UIlink.MCBoolEditableBind;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -91,7 +84,7 @@ public class ImageExtractor extends javax.swing.JFrame {
 
         jLabel5.setText("Current Page:");
 
-        FileSpiner.setModel(new javax.swing.SpinnerNumberModel(302, 0, null, 1));
+        FileSpiner.setModel(new javax.swing.SpinnerNumberModel(1, 0, null, 1));
 
         jLabel3.setText("Image Type:");
 
@@ -177,7 +170,7 @@ public class ImageExtractor extends javax.swing.JFrame {
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                     .addComponent(txtstatusbar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(PBstate, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addContainerGap())
+                .addGap(0, 0, 0))
         );
 
         pack();
@@ -248,27 +241,24 @@ public class ImageExtractor extends javax.swing.JFrame {
     // End of variables declaration//GEN-END:variables
 
     private void initListener() {
-        var ProcessingInformationDisplay = MyProcessor.getInfoLink();
-        ProcessingInformationDisplay.CurrentUIEnablement.setValue(true);
-        MCBoolEditableBind binding = new MCBoolEditableBind(txtfolder, ProcessingInformationDisplay.CurrentUIEnablement);
-        MCBoolCompEnableBind binding2 = new MCBoolCompEnableBind(btsave, ProcessingInformationDisplay.CurrentUIEnablement);
-        JtextComponentAppendUpdateBind statusBind = new JtextComponentAppendUpdateBind(txtLog, ProcessingInformationDisplay.CurrentStatus);
-        JLabelComponentBind labelBind= new JLabelComponentBind(txtImageType,  ProcessingInformationDisplay.ImageTypeString);
-        JLabelComponentBind labelDigest= new JLabelComponentBind(txtstatusbar,  ProcessingInformationDisplay.LastFileCheckSum);
-        JtextComponentBind BindFilePath = new JtextComponentBind(txtfolder, ProcessingInformationDisplay.SavingFilePath);
-        JSpinnerComponentBind BinFileNameSpinner =  new JSpinnerComponentBind(FileSpiner, ProcessingInformationDisplay.CurrentFileNumber);
-        ProcessingInformationDisplay.CurrentFileNumber.setValue((Integer)FileSpiner.getModel().getValue());
-        ImagePanelBinding ImageBind = new ImagePanelBinding(PImage,ProcessingInformationDisplay.ImageProperty);
-        binding.addComponent(txtLog);
-        binding2.addComponent(FileSpiner);
+        var ProcInfoDisp = MyProcessor.getInfoLink();
+        ProcInfoDisp.bindCurrentStatus(txtLog);
+        ProcInfoDisp.bindSavingFile(txtfolder);
+        ProcInfoDisp.bindEditableTxtComp(txtfolder,txtLog);
+        ProcInfoDisp.bindEnabledComp(btsave,FileSpiner);
+        ProcInfoDisp.bindImageType(txtImageType);
+        ProcInfoDisp.bindstatusBarInfo(txtstatusbar);
+        ProcInfoDisp.bindFileNumber(FileSpiner);
+        ProcInfoDisp.bindImage(PImage);
+        ProcInfoDisp.bindIndeterminateProgressBar(PBstate);
+        ProcInfoDisp.setUIEnablement(true);       
+        ProcInfoDisp.updateFromSettings();
         if (MainListener.isProcessingTask() || MainListener.isServiceOnline()) {
             //we cannot add as the service is online 
             return;
         }
         MainListener.addFlavorHandler(MyProcessor, MyProcessor.mySupportedFlavor());
         MainListener.StartClipBoardService();
-
-        //PBstate.setIndeterminate(!enabled)
     }
 
 }
