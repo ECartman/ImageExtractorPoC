@@ -106,8 +106,6 @@ public final class ProgressObject {
 
     public void fileNumberpplus() {
         CurrentFileNumber.plusplus();
-        Props.setProperty("Page", CurrentFileNumber.getValue().toString());
-        Props.SaveIfNeeded();
     }
 
     public void setStatus(String str) {
