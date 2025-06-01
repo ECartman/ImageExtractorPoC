@@ -57,7 +57,7 @@ public class SkipInputStream extends InputStream {
      * @param diggester the digester algorith to use to wrap the SkipInputStream to calculate the digested signature
      * @return DigestInputStream that wraps a base64Stream that wraps the SkipInputStream that wraps the toWrap stream
      */
-    public  static final DigestInputStream getWrappedStream(InputStream toWrap, Charset charEncoding, MessageDigest diggester) {
+    public static final DigestInputStream getWrappedStream(InputStream toWrap, Charset charEncoding, MessageDigest diggester) {
         var base64Decoded = Base64.getDecoder()
                 .wrap(new SkipInputStream(toWrap, charEncoding));
         //diggester.reset();//the caller need to ensure this 

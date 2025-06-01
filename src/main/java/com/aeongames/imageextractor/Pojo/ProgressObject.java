@@ -22,7 +22,7 @@ import java.awt.image.BufferedImage;
  *
  * @author Eduardo Vindas
  */
-public class ProgressObject {
+public final class ProgressObject {
 
     public final PropertyPojo<String> CurrentStatus = PropertyPojo.newStringPojo();
     public final PropertyPojo<String> ImageTypeString = PropertyPojo.newStringPojo();

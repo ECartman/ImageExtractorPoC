@@ -1,6 +1,5 @@
 /*
- * 
- *   Copyright © 2018 Eduardo Vindas Cordoba. All rights reserved.
+ *   Copyright © 2018,2025 Eduardo Vindas Cordoba. All rights reserved.
  *  
  *   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  *   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -19,7 +18,7 @@ import java.util.Objects;
 
 /**
  *
- * @author Eduardo <cartman@aeongames.com>
+ * @author Eduardo Vindas <cartman>
  */
 public class ByteUtils {
 
@@ -58,6 +57,11 @@ public class ByteUtils {
         return hexString.toString();
     }
     
+    /**
+     * Converts a ByteBuffer array to a hexadecimal string representation.
+     * @param buffer the buffer to convert
+     * @return the hexadecimal string representation of the byte array
+     */
     public static String ByteArrayToString(final ByteBuffer buffer){
         Objects.requireNonNull(buffer,"Invalid Byte Array");
         buffer.rewind();
@@ -68,6 +72,13 @@ public class ByteUtils {
         return ByteArrayToString(values);
     }
 
+    /**
+     * converts the String that represent a Hex value into a byte array
+     * TODO: this function does not convert the value in order (*meaning from right to left)
+     * rather left to right. 
+     * @param hex
+     * @return 
+     */
     public static byte[] HexToBytes(String hex) {
         Objects.requireNonNull(hex, "the hex value cannot be null");
        final byte values[] = new byte[hex.length()/2];
@@ -79,9 +90,8 @@ public class ByteUtils {
         return values;
     }
     
-    //TODO: move to ByteUtils or merge both files. 
     /**
-     * creates an array that contains the provided data.
+     * wraps the provided byte to a byteBuffer.
      *
      * @param data the data that will be stored in the array
      * @return the array contained the value.
@@ -91,10 +101,6 @@ public class ByteUtils {
     }
     
     /**
-     * WARNING the provided array MAY BE MUTABLE !!!
-     * PLEASE if using for the Blockchain MAKE SURE no other process have access to 
-     * write or modify it. 
-     * 
      * wraps the data provided into a byteBuffer. 
      * please not that the ByteBuffer does NOT copy the data. make sure the 
      * provided byte array is immutable. otherwise use to_safe_bytebuff

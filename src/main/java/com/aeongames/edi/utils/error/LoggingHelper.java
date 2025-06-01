@@ -17,8 +17,8 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.WeakHashMap;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -43,7 +43,7 @@ public class LoggingHelper {
     //</editor-fold >
 
     //<editor-fold defaultstate="collapsed" desc="Constants">
-    private static final String DEFAULT_LOGGER_NAME="CenterLogger";
+    private static final String DEFAULT_LOGGER_NAME = "CenterLogger";
     /**
      * the Default Logger for this Application TODO: need a way to detect
      * application name or project name or change this at compile time. or
@@ -53,7 +53,12 @@ public class LoggingHelper {
     /**
      * the File pattern to use when creating the log files.
      */
-    public static final String LOG_FILE_PATTERN = "%g.log";
+    public static final String LOG_FILE_PATTERN = ".%g.log";
+    /**
+     * default amount if bytes to write per file 
+     */
+    public static final int FILE_SIZE_LIMIT = 1_073_741_824/2; // lets write up to 500MB per file
+    public static final int FILE_COUNT = 5;
     /**
      * the folder where we prefer the logs to be stored at. relative to the Run
      * time Folder
@@ -62,9 +67,12 @@ public class LoggingHelper {
 
     /**
      * a map that hold references to the registered loggers that were requested
-     * to this class
+     * to this class we use WeakHashMap, as we intent to hold a cache of loggers
+     * that are frequenly used. and if they are not used we can save some memory
+     * and if we need we can recall the logger to check if there is a logger
+     * again
      */
-    private static final Map<String, Logger> RegisteredLoggers = new HashMap<>();
+    private static final Map<String, Logger> RegisteredLoggers = new WeakHashMap<>();
     //</editor-fold>
 
     //<editor-fold defaultstate="collapsed" desc="variables">
@@ -90,7 +98,7 @@ public class LoggingHelper {
             DEFAULTLOGGER.setLevel(Level.ALL);
             RegisteredLoggers.put(DEFAULT_LOGGER_NAME, DEFAULTLOGGER);
         } catch (IOException | SecurityException ex1) {
-            ex1.printStackTrace(System.err);
+            Logger.getLogger(LoggingHelper.class.getName()).log(Level.SEVERE, null, ex1);
         }
     }
     //</editor-fold>
@@ -114,24 +122,23 @@ public class LoggingHelper {
         LoggerforID = Logger.getLogger(LogID);
         LoggerforID.setLevel(Level.ALL);
         ensureErrorFolderExists();
-        if (isLoggingIntoFile(LoggerforID)) {
-            RegisteredLoggers.put(LogID, LoggerforID);
-            return LoggerforID;
+        if (!isLoggingIntoFile(LoggerforID)) {
+            try {
+                LoggerforID.addHandler(getDefaultFileHandler(LogID));
+            } catch (IOException | SecurityException ex) {
+                Logger.getLogger(LoggingHelper.class.getName()).log(Level.SEVERE,"cannot setup the File Logging", ex);
+            }
         }
-        try {
-            LoggerforID.addHandler(getDefaultFileHandler(LogID));
-            RegisteredLoggers.put(LogID, LoggerforID);
-        } catch (IOException | SecurityException ex) {
-            Logger.getLogger(LoggingHelper.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        RegisteredLoggers.put(LogID, LoggerforID);
         return LoggerforID;
     }
 
     /**
-     * gets the Default Logger for this application. you can use this logger 
-     * to log errors. but might provide a large file and difficult to follow 
-     * if many classes log into it. use this logger as last resort or if your
+     * gets the Default Logger for this application. you can use this logger to
+     * log errors. but might provide a large file and difficult to follow if
+     * many classes log into it. use this logger as last resort or if your
      * application logs are manageable
+     *
      * @return the default logger for this application.
      */
     public static final Logger getDefaultLogger() {
@@ -139,10 +146,12 @@ public class LoggingHelper {
     }
 
     /**
-     * gets or creates the logger for the caller class to this function. 
-     * it simplifies the process of creating the logger based on just class name
-     * however it might fail to create it. if fails it returns the Default logger.
-     * @return a new or the registered Logger for the calling class if it fails 
+     * gets or creates the logger for the caller class to this function. it
+     * simplifies the process of creating the logger based on just class name
+     * however it might fail to create it. if fails it returns the Default
+     * logger.
+     *
+     * @return a new or the registered Logger for the calling class if it fails
      * to read the caller class it returns the {@link getDefaultLogger()}
      */
     public static final Logger getClassLoggerForMe() {
@@ -162,7 +171,7 @@ public class LoggingHelper {
      * @return the string name of the caller class or null if we cannot
      * determine+
      */
-    private final static String getCallerCallerClassName() {
+    private static String getCallerCallerClassName() {
         StackTraceElement[] stElements = null;
         try {
             stElements = Thread.currentThread().getStackTrace();
@@ -242,7 +251,8 @@ public class LoggingHelper {
      * @throws IOException
      */
     private static FileHandler getDefaultFileHandler(String Name) throws IOException {
-        FileHandler Fhandle = new FileHandler(String.format("%s/%s", LOG_FOLDER, Name) + LOG_FILE_PATTERN);
+        String pattern =String.format("%s/%s", LOG_FOLDER.toString(), Name) + LOG_FILE_PATTERN;
+        FileHandler Fhandle = new FileHandler(pattern,FILE_SIZE_LIMIT,FILE_COUNT,true);
         Fhandle.setFormatter(SimpleFormatter ? new SimpleFormatter() : new XMLFormatter());
         return Fhandle;
     }
