@@ -10,24 +10,24 @@
  *  THE SOFTWARE.
  * 
  */
-package com.aeongames.imageextractor.Pojo;
+package com.aeongames.imgext.components;
 
-import com.aeongames.edi.utils.File.Properties_File;
-import com.aeongames.edi.utils.Pojo.BooleanPropertyPojo;
-import com.aeongames.edi.utils.Pojo.IntegerPropertyPojo;
-import com.aeongames.edi.utils.Pojo.ListenableProperty;
-import com.aeongames.edi.utils.Pojo.PropertyChangeListener;
-import com.aeongames.edi.utils.Pojo.PropertyPojo;
+import com.aeongames.edi.utils.file.Properties_File;
+import com.aeongames.edi.utils.pojo.BooleanPropertyPojo;
+import com.aeongames.edi.utils.pojo.IntegerPropertyPojo;
+import com.aeongames.edi.utils.pojo.ListenableProperty;
+import com.aeongames.edi.utils.pojo.PropertyChangeListener;
+import com.aeongames.edi.utils.pojo.PropertyPojo;
 import com.aeongames.edi.utils.visual.Panels.ImagePanel;
-import com.aeongames.edi.utils.visual.UIlink.BaseBinder;
-import com.aeongames.edi.utils.visual.UIlink.ImagePanelBinding;
-import com.aeongames.edi.utils.visual.UIlink.JLabelComponentBind;
-import com.aeongames.edi.utils.visual.UIlink.JSpinnerComponentBind;
-import com.aeongames.edi.utils.visual.UIlink.JtextComponentAppendUpdateBind;
-import com.aeongames.edi.utils.visual.UIlink.JtextComponentBind;
-import com.aeongames.edi.utils.visual.UIlink.MCBoolCompEnableBind;
-import com.aeongames.edi.utils.visual.UIlink.MCBoolEditableBind;
-import com.aeongames.edi.utils.visual.UIlink.MCBoolProbarIndeterminate;
+import com.aeongames.edi.utils.visual.pojouilink.BaseBinder;
+import com.aeongames.edi.utils.visual.pojouilink.ImagePanelBinding;
+import com.aeongames.edi.utils.visual.pojouilink.JLabelComponentBind;
+import com.aeongames.edi.utils.visual.pojouilink.JSpinnerComponentBind;
+import com.aeongames.edi.utils.visual.pojouilink.JtextComponentAppendUpdateBind;
+import com.aeongames.edi.utils.visual.pojouilink.JtextComponentBind;
+import com.aeongames.edi.utils.visual.pojouilink.MCBoolCompEnableBind;
+import com.aeongames.edi.utils.visual.pojouilink.MCBoolEditableBind;
+import com.aeongames.edi.utils.visual.pojouilink.MCBoolProbarIndeterminate;
 import java.awt.image.BufferedImage;
 import java.nio.file.Path;
 import java.util.ArrayList;

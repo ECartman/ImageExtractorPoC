@@ -10,10 +10,10 @@
  *  THE SOFTWARE.
  *
  */
-package com.aeongames.edi.utils.visual.UIlink;
+package com.aeongames.edi.utils.visual.pojouilink;
 
-import com.aeongames.edi.utils.Pojo.ListenableProperty;
-import com.aeongames.edi.utils.Pojo.PropertyChangeListener;
+import com.aeongames.edi.utils.pojo.ListenableProperty;
+import com.aeongames.edi.utils.pojo.PropertyChangeListener;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;

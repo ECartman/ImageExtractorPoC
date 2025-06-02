@@ -10,12 +10,12 @@
  *  THE SOFTWARE.
  * 
  */
-package com.aeongames.edi.utils.visual.UIlink;
+package com.aeongames.edi.utils.visual.pojouilink;
 
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.JTextComponent;
-import com.aeongames.edi.utils.Pojo.ListenableProperty;
+import com.aeongames.edi.utils.pojo.ListenableProperty;
 
 /**
  * this class Binds a

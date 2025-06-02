@@ -21,5 +21,5 @@ module com.aeongames.imageextractor {
     requires transitive java.datatransfer;
     requires transitive java.logging;
     requires transitive java.management;
-    exports com.aeongames.imageextractor;
+    exports com.aeongames.imgext.app;
 }

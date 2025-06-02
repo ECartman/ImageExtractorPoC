@@ -9,7 +9,7 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  */
-package com.aeongames.edi.utils.ThreadUtils;
+package com.aeongames.edi.utils.threading;
 
 /**
  * a functional interface to check of the current execution should halt and the 

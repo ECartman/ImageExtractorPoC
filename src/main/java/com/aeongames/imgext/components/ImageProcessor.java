@@ -10,15 +10,15 @@
  *  THE SOFTWARE.
  * 
  */
-package com.aeongames.imageextractor;
+package com.aeongames.imgext.components;
 
 import com.aeongames.edi.utils.common.CharsetCompatibilityChecker;
-import com.aeongames.edi.utils.Clipboard.FlavorProcessor;
-import com.aeongames.edi.utils.ThreadUtils.StopSignalProvider;
+import com.aeongames.edi.utils.clipboard.FlavorProcessor;
+import com.aeongames.edi.utils.threading.StopSignalProvider;
 import com.aeongames.edi.utils.common.ByteUtils;
 import com.aeongames.edi.utils.common.SkipInputStream;
 import com.aeongames.edi.utils.error.LoggingHelper;
-import com.aeongames.imageextractor.Pojo.ProgressObject;
+import com.aeongames.imgext.components.ProgressObject;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
@@ -87,7 +87,7 @@ public class ImageProcessor implements FlavorProcessor {
         try {
             resultHasher = MessageDigest.getInstance("SHA-256");
         } catch (NoSuchAlgorithmException ex) {
-            LoggingHelper.getLogger(ImageProcessor.class.getName()).log(Level.SEVERE, null, ex);
+            LoggingHelper.getClassLoggerForMe().log(Level.SEVERE, null, ex);
             // rethrow the error we cannot work without a hasher.
             throw ex;
         }
@@ -160,7 +160,7 @@ public class ImageProcessor implements FlavorProcessor {
             Report("Reading The Clipboard Into JVM");
             TrasferableDataStream = (InputStream) transferData.getTransferData(flavor);
         } catch (UnsupportedFlavorException | IOException ex) {
-            LoggingHelper.getLogger(ImageProcessor.class.getName()).log(Level.SEVERE, "Unable to pull the TransferData with the registered Flavor.", ex);
+            LoggingHelper.getClassLoggerForMe().log(Level.SEVERE, "Unable to pull the TransferData with the registered Flavor.", ex);
             reportError(ex);
         }
         return TrasferableDataStream;
@@ -241,7 +241,7 @@ public class ImageProcessor implements FlavorProcessor {
                 pushbackStream.close();
             } catch (IOException err) {
             }
-            LoggingHelper.getLogger(ImageProcessor.class.getName()).log(Level.SEVERE, null, ex);
+            LoggingHelper.getClassLoggerForMe().log(Level.SEVERE, null, ex);
             reportError(ex);
             UIStatus(true);
             return null;
@@ -332,7 +332,7 @@ public class ImageProcessor implements FlavorProcessor {
                 Hasher.reset();// flush the data we dont need it. 
             }
         } catch (IOException ex) {
-            LoggingHelper.getLogger(ImageProcessor.class.getName()).log(Level.SEVERE, null, ex);
+            LoggingHelper.getClassLoggerForMe().log(Level.SEVERE, null, ex);
             reportError(ex);
             UIStatus(true);
             return false;
@@ -342,7 +342,7 @@ public class ImageProcessor implements FlavorProcessor {
                     TrasferableDataStream.close();
                 }
             } catch (IOException ex) {
-                LoggingHelper.getLogger(ImageProcessor.class.getName()).log(Level.SEVERE, null, ex);
+                LoggingHelper.getClassLoggerForMe().log(Level.SEVERE, null, ex);
                 reportError(ex);
             }
         }

@@ -10,9 +10,10 @@
  *  THE SOFTWARE.
  * 
  */
-package com.aeongames.imageextractor;
+package com.aeongames.imgext.app;
 
-import com.aeongames.edi.utils.Clipboard.ClipboardService;
+import com.aeongames.edi.utils.clipboard.ClipboardService;
+import com.aeongames.imgext.components.ImageProcessor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;

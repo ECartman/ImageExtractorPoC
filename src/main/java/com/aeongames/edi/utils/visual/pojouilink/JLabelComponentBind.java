@@ -10,9 +10,9 @@
  *  THE SOFTWARE.
  * 
  */
-package com.aeongames.edi.utils.visual.UIlink;
+package com.aeongames.edi.utils.visual.pojouilink;
 
-import com.aeongames.edi.utils.Pojo.ListenableProperty;
+import com.aeongames.edi.utils.pojo.ListenableProperty;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.Objects;

@@ -10,7 +10,7 @@
  *  THE SOFTWARE.
  * 
  */
-package com.aeongames.edi.utils.ThreadUtils;
+package com.aeongames.edi.utils.threading;
 
 /**
  * simple await class example.
