@@ -624,7 +624,13 @@ public final class ClipboardService implements Runnable, FlavorListener, Clipboa
             }
             var clipply = processClipboardChange(getNextQueuedClip());
             if (Objects.nonNull(clipply) && retrypending-- > 0) {
-                RequestQueue.offer(clipply);//try to requeue the failied work
+                RequestQueue.offer(clipply);
+                //delay the execution to await Clipboard owner to finish adding 
+                //or processing data into the it. and avoid the same error.
+                try {
+                    Thread.sleep(MILLIS_ERROR_DELAY);
+                } catch (InterruptedException ex) {
+                }
             } else {
                 retrypending = MAX_CONTENTRETRY;
             }
