@@ -11,12 +11,13 @@
  */
 package com.aeongames.edi.utils.clipboard;
 
-import java.awt.datatransfer.Clipboard;
+import com.aeongames.edi.utils.error.LoggingHelper;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.util.Objects;
 
 import com.aeongames.edi.utils.threading.StopSignalProvider;
+import java.util.logging.Level;
 
 /**
  *
@@ -24,6 +25,7 @@ import com.aeongames.edi.utils.threading.StopSignalProvider;
  */
 public class FlavorHandler implements FlavorProcessor {
 
+    private static final String LOGGERNAME = "ClipBoardListenerLogger";
     /**
      * the an array of {@link DataFlavor} (at the least one) to handle Clipboard
      * events.
@@ -82,8 +84,8 @@ public class FlavorHandler implements FlavorProcessor {
      * if unable or not supported)
      */
     @Override
-    public boolean handleFlavor(DataFlavor flavor, StopSignalProvider stopProvider, Transferable transferData, Clipboard clipboard) {
-        if (Objects.isNull(transferData) || Objects.isNull(clipboard)) {
+    public boolean handleFlavor(DataFlavor flavor, StopSignalProvider stopProvider, Transferable transferData) throws ClipboardException {
+        if (Objects.isNull(transferData)) {
             return false;
         }
         if (stopProvider != null && this.stopProvider != stopProvider) {
@@ -102,7 +104,7 @@ public class FlavorHandler implements FlavorProcessor {
         if (FlavorTohandle == null) {
             return false;
         }
-        return processor.handleFlavor(FlavorTohandle, this.stopProvider, transferData, clipboard);
+        return processor.handleFlavor(FlavorTohandle, this.stopProvider, transferData);
     }
 
     /**
@@ -113,9 +115,9 @@ public class FlavorHandler implements FlavorProcessor {
      * @param clipboard the Clipboard associated with the Transferable
      * @return true if the flavor was handled successfully, false otherwise
      */
-    public final boolean handleFlavor(Transferable transferData, Clipboard clipboard) {
+    public final boolean handleFlavor(Transferable transferData) throws ClipboardException {
         //we cannot process the data if the clipboard is null or the data is null
-        if (Objects.isNull(transferData) || Objects.isNull(clipboard)) {
+        if (Objects.isNull(transferData)) {
             return false;
         }
         //check if the transferible. supports the flavor that our handle can process
@@ -129,7 +131,8 @@ public class FlavorHandler implements FlavorProcessor {
         if (FlavorTohandle == null) {
             return false;
         }
-        return processor.handleFlavor(FlavorTohandle, stopProvider, transferData, clipboard);
+        LoggingHelper.getLogger(LOGGERNAME).log(Level.INFO,"Compatible Handler Found, Calling: {0}",processor.getClass().getName());
+        return processor.handleFlavor(FlavorTohandle, stopProvider, transferData);
     }
 
     /**

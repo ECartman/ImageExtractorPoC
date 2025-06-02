@@ -96,7 +96,7 @@ public class TestClipboardListenings {
         ClipboardService TestingClipboardListener = ClipboardService.getClipboardService();
         //we should check if running but for this test is not required.
         TestingClipboardListener.addFlavorHandler(
-                (flavor, stopProvider, transferData, clipboard) -> {
+                (flavor, stopProvider, transferData) -> {
                     // asure that we are not to stop processing
                     if (stopProvider.isStopSignalReceived()) {
                         return false;

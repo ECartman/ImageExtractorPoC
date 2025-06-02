@@ -12,14 +12,13 @@
  */
 package com.aeongames.imgext.components;
 
+import com.aeongames.edi.utils.clipboard.ClipboardException;
 import com.aeongames.edi.utils.common.CharsetCompatibilityChecker;
 import com.aeongames.edi.utils.clipboard.FlavorProcessor;
 import com.aeongames.edi.utils.threading.StopSignalProvider;
 import com.aeongames.edi.utils.common.ByteUtils;
 import com.aeongames.edi.utils.common.SkipInputStream;
 import com.aeongames.edi.utils.error.LoggingHelper;
-import com.aeongames.imgext.components.ProgressObject;
-import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
@@ -154,7 +153,7 @@ public class ImageProcessor implements FlavorProcessor {
         UIStatus(true);
     }
 
-    private InputStream OpenClipboard(Transferable transferData, DataFlavor flavor) {
+    private InputStream OpenClipboard(Transferable transferData, DataFlavor flavor) throws ClipboardException {
         InputStream TrasferableDataStream = null;
         try {
             Report("Reading The Clipboard Into JVM");
@@ -162,6 +161,9 @@ public class ImageProcessor implements FlavorProcessor {
         } catch (UnsupportedFlavorException | IOException ex) {
             LoggingHelper.getClassLoggerForMe().log(Level.SEVERE, "Unable to pull the TransferData with the registered Flavor.", ex);
             reportError(ex);
+            if(ex instanceof IOException ioe){
+                throw new ClipboardException(ioe,"Unable to pull the data from the Clipboard.");
+            }
         }
         return TrasferableDataStream;
     }
@@ -255,13 +257,31 @@ public class ImageProcessor implements FlavorProcessor {
         return digestStream;
     }
 
+    /**
+     * this function handles the Clipboard info assumed that is text and we will
+     * check if the information on the Clipboard represent a Image
+     * 
+     * and report this information to the UI async
+     * 
+     * @param flavor the expected flavor to handle by this method
+     * @param transferData the Transferable object to handle
+     * @param stopProvider a functional interface that should be used to check
+     * if this function should stop processing data and return.
+     * @param clipboard the Clipboard associated with the Transferable
+     * @return true if the flavor was handled successfully, false otherwise (or
+     * if unable or not supported)
+     * @throws ClipboardException if there was a error that needs to be reported to
+     * the Service and desires to Reattempt to read the Clipboard. 
+     */
     @Override
     public boolean handleFlavor(DataFlavor flavor, StopSignalProvider stopProvider,
-            Transferable transferData, Clipboard clipboard) {
+            Transferable transferData)throws ClipboardException {
         reportNewRequest();
         if (!isThisForUs(flavor, stopProvider)) {
             return false;
         }
+        //if we cant open the clipboard data. throw ClipboardException so caller retry
+        //to get the clipboard data. as we should not do that here. 
         InputStream TrasferableDataStream = OpenClipboard(transferData, flavor);
         if (Objects.isNull(TrasferableDataStream)) {
             reportFailure("Could Not Read The Clipboard");

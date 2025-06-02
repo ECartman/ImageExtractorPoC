@@ -11,7 +11,6 @@
  */
 package com.aeongames.edi.utils.clipboard;
 
-import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 
@@ -31,13 +30,13 @@ public interface FlavorProcessor extends EventListener {
     /**
      * note if this function is called by {@link FlavorHandler} the flavor check
      * is already performed.also assume that
-     * {@code transferData}.isDataFlavorSupported({@code flavor}) will be true.
-     * this function should make the assumption that non of the parameters are
-     * null the implementation should focus on the following task: Processing
-     * the flavor and the Transfer data. periodically (before and after) check
-     * if stopProvider has requested the function to stop processing data. and
-     * return a boolean indicating whenever or not it successfully handled the
-     * clipboard content.
+     * {@code transferData}.isDataFlavorSupported({@code flavor}) will be true.this function should make the assumption that non of the parameters are
+ null the implementation should focus on the following task: Processing
+ the flavor and the Transfer data.
+     * periodically (before and after) check
+ if stopProvider has requested the function to stop processing data. and
+ return a boolean indicating whenever or not it successfully handled the
+ clipboard content.
      *
      * @param flavor the expected flavor to handle by this method
      * @param transferData the Transferable object to handle
@@ -46,6 +45,8 @@ public interface FlavorProcessor extends EventListener {
      * @param clipboard the Clipboard associated with the Transferable
      * @return true if the flavor was handled successfully, false otherwise (or
      * if unable or not supported)
+     * @throws ClipboardException if a error happens while Reading the data from 
+     * {@code transferData} due the Clipboard Was busy. or in used by other process
      */
-    public boolean handleFlavor(DataFlavor flavor, StopSignalProvider stopProvider, Transferable transferData, Clipboard clipboard);
+    public boolean handleFlavor(DataFlavor flavor, StopSignalProvider stopProvider, Transferable transferData) throws ClipboardException;
 }

@@ -158,6 +158,17 @@ public final class ClipboardService implements Runnable, FlavorListener, Clipboa
      * Internal Name for this Class Logger.
      */
     private static final String LOGGERNAME = "ClipBoardListenerLogger";
+    /**
+     * the amount of times to retry if fail to open the clipboard and get the
+     * clipboard metadata.
+     */
+    private static final byte MAX_CONTENTRETRY = 3;
+
+    /**
+     * delay in Mill secs to wait if we are unable to get Clipboard metadata
+     * before we retry again.
+     */
+    private static final int MILLIS_ERROR_DELAY = 150;
 
     /**
      * a reference to the system Clipboard
@@ -591,9 +602,10 @@ public final class ClipboardService implements Runnable, FlavorListener, Clipboa
     @Override
     public void run() {
         LoggingHelper.getLogger(LOGGERNAME).info("Thead Execution Start.");
+        byte retrypending = MAX_CONTENTRETRY;
         while (serviceOnline) {
             synchronized (this) {
-                LoggingHelper.getLogger(LOGGERNAME).info("Loop, check");
+                LoggingHelper.getLogger(LOGGERNAME).info("Checking for work");
                 // if we have work pending lets process it instead.
                 if (RequestQueue.isEmpty() && !forceProcess) {
                     try {
@@ -610,7 +622,12 @@ public final class ClipboardService implements Runnable, FlavorListener, Clipboa
                 forceProcess = false;// disengage the force process flag.
                 processingData = true;
             }
-            processClipboardChange(getNextQueuedClip());
+            var clipply = processClipboardChange(getNextQueuedClip());
+            if (Objects.nonNull(clipply) && retrypending-- > 0) {
+                RequestQueue.offer(clipply);//try to requeue the failied work
+            } else {
+                retrypending = MAX_CONTENTRETRY;
+            }
             synchronized (this) {
                 processingData = false;
             }
@@ -645,68 +662,81 @@ public final class ClipboardService implements Runnable, FlavorListener, Clipboa
     }
 
     /**
-     * request to process a change on the Clipboard. that was booked into this
-     * service specified Clipboard resource.
+     * opens and gathers the Clipboard Transferable Object that at this point
+     * contains metadata. (and COULD contain the clipboard content as well.)
      *
-     * @param clipboard the clipboard resource to pull the change from
+     * @param clipboard the clipboard to pull the data from
+     * @return a Transferable object. can be null if fail to read the data.
      */
-    private void processClipboardChange(Clipboard clipboard) {
+    private Transferable getClipboardContent(Clipboard clipboard) {
         Transferable contents = null;
         boolean errorstate;//we fail to open the clipboard and read its data?
-        int pendingRetry = 3;
+        int pendingRetry = MAX_CONTENTRETRY;
         do {
             errorstate = false;
             try {
-                LoggingHelper.getLogger(LOGGERNAME).info("Looking at Clipboard...");
                 contents = clipboard.getContents(this);
                 if (Objects.isNull(contents) || !processingData) {
-                    return;
+                    return null;
                 }
             } catch (IllegalStateException ise) {
                 LoggingHelper.getLogger(LOGGERNAME).log(Level.SEVERE,
                         "Clipboard State Error. Delaying the Procesesing", ise);
                 try {
-                    Thread.sleep(100);
+                    Thread.sleep(MILLIS_ERROR_DELAY);
                 } catch (InterruptedException ex) {
                 }
                 errorstate = true;
             }
         } while (errorstate && pendingRetry-- > 0);
-        try {
-            // if a interrupt to the process has been requested bail out.
-            // also if the content of the Clipboard is null we will bail out.
-            if (Objects.isNull(contents) || !processingData) {
-                return;
-            }
-            // check if the clipboard has any of the flavors we are interested in.
-            DebugLog(contents);
-            for (FlavorHandler handler : FlavorsListPriority) {
-                if (!processingData) {
-                    return;
-                }
-                LoggingHelper.getLogger(LOGGERNAME).info("Calling Handler");
-                var result = handler.handleFlavor(contents, clipboard);
-                // we have processed the flavor. we can bail out.
+        return contents;
+    }
+
+    /**
+     * request to process a change on the Clipboard. that was booked into this
+     * service specified Clipboard resource.
+     *
+     * @param clipboard the clipboard resource to pull the change from
+     */
+    private Clipboard processClipboardChange(Clipboard clipboard) {
+        LoggingHelper.getLogger(LOGGERNAME).info("Clipboard Change trigger Looking at the Clipboard");
+        Transferable contents = getClipboardContent(clipboard);
+        // bail if null content or we are requested to do so
+        if (Objects.isNull(contents) || !processingData) {
+            return null;
+        }
+        DebugLog(contents);
+        // check if the content can be handled by our registered handlers.
+        for (FlavorHandler handler : FlavorsListPriority) {
+            try {
+                var result = handler.handleFlavor(contents);
                 if (result) {
                     LoggingHelper.getLogger(LOGGERNAME).info("Clipboard Data Handled");
                     break;
                 }
+            } catch (ClipboardException Cex) {
+                LoggingHelper.getLogger(LOGGERNAME)
+                        .log(Level.SEVERE, "Clipboard Exception detected", Cex);
+                return clipboard;
+            } catch (Throwable ex) {
+                //capture all other errors and log em 
+                //we do this as handlers might not have handled by the handler.
+                //but are NOT errors that we should care for.
+                LoggingHelper.getLogger(LOGGERNAME)
+                        .log(Level.SEVERE, "Error Has been catch at processClipboardChange", ex);
             }
-        } catch (Throwable ex) {
-            LoggingHelper.getLogger(LOGGERNAME)
-                    .log(Level.SEVERE, "Error Has been catch at processClipboardChange", ex);
+            //should we bail?
+            if (!processingData) {
+                return null;
+            }
         }
-        try {
-            if (Objects.isNull(contents) || !processingData) {
-                return;
+        if (!Owner.get()) {
+            if (!processingData) {
+                return null;
             }
-            if (!Owner.get()) {
-                regainOwnership(contents);
-            }
-        } catch (IllegalStateException ise) {
-            LoggingHelper.getLogger(LOGGERNAME)
-                    .log(Level.SEVERE, "cannot regain ownership", ise);
+            regainOwnership(contents);
         }
+        return null;
     }
 
     private void DebugLog(Transferable contents) {
@@ -723,8 +753,8 @@ public final class ClipboardService implements Runnable, FlavorListener, Clipboa
             var added2 = flavorsMime.add(flavor.getDefaultRepresentationClassAsString());
             if (added) {
                 if (added2) {
-                    LoggingHelper.getLogger("Clipboard.Info").log(Level.INFO, "Flavor: {0} :: Flavor Class: {1}", new Object[]{flavor.getHumanPresentableName(),flavor.getDefaultRepresentationClassAsString()});
-                }else{
+                    LoggingHelper.getLogger("Clipboard.Info").log(Level.INFO, "Flavor: {0} :: Flavor Class: {1}", new Object[]{flavor.getHumanPresentableName(), flavor.getDefaultRepresentationClassAsString()});
+                } else {
                     LoggingHelper.getLogger("Clipboard.Info").log(Level.INFO, "Flavor: {0}", new Object[]{flavor.getHumanPresentableName()});
                 }
             } else if (added2) {
@@ -759,12 +789,11 @@ public final class ClipboardService implements Runnable, FlavorListener, Clipboa
                     if (e.getSource() instanceof Clipboard clipboard) {
                         // we will add the clipboard to the request queue.
                         if (RequestQueue.isEmpty() || !clipboard.equals(RequestQueue.peek())) {
-                            try {
-                                RequestQueue.add(clipboard);
-                            } catch (IllegalStateException fullExpt) {
-                                LoggingHelper.getLogger(LOGGERNAME)
-                                        .log(Level.WARNING, "Queue is full and all items are different.", fullExpt);
-                                ErrorResearchLog(RequestQueue);
+                            var added = RequestQueue.offer(clipboard);
+                            if (!added) {
+                                LoggingHelper.getLogger(LOGGERNAME).warning("The Work queue is Full removing older. LOSS MIGHT HAPPEN!");
+                                RequestQueue.poll();
+                                RequestQueue.offer(clipboard);
                             }
                         }
                     } else if (RequestQueue.isEmpty() || !SYSTEM_CLIPBOARD.equals(RequestQueue.peek())) {
@@ -871,21 +900,6 @@ public final class ClipboardService implements Runnable, FlavorListener, Clipboa
             SkipNext.set(false);
             LoggingHelper.getLogger(LOGGERNAME).log(Level.WARNING, "Error attempting to Regain Clipboard Ownership", e);
         }
-    }
-
-    /**
-     * log the information of a rare edge case that is THEORETICALLY possible.
-     *
-     * @param RequestQueue the queue that caused a error adding items into it.
-     */
-    private void ErrorResearchLog(ArrayBlockingQueue<Clipboard> RequestQueue) {
-        LoggingHelper.getLogger(LOGGERNAME).entering(this.getClass().getName(), "ErrorResearchLog");
-        RequestQueue.forEach((clippy) -> {
-            LoggingHelper.getLogger(LOGGERNAME)
-                    .log(Level.INFO, "ErrorResearchLog :: Clipboard {0}, Class {1}",
-                            new Object[]{clippy.getName(), clippy.getClass().getName()});
-        });
-        LoggingHelper.getLogger(LOGGERNAME).exiting(this.getClass().getName(), "ErrorResearchLog");
     }
 
     /**

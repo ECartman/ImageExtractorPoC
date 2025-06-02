@@ -15,7 +15,7 @@
  * this defines a Module-Info for this application package. 
  * given this is NOT a library we will ONLY export the UI Frame class. 
  */
-module com.aeongames.imageextractor {
+module com.aeongames.imgext {
     requires java.base;
     requires transitive java.desktop;
     requires transitive java.datatransfer;
