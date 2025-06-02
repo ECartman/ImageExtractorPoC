@@ -7,6 +7,8 @@ this is a Poc To test
   -Multithreading (playing between EDT and Threads)
   
   -Reading big chunks of data from the Clipboard. 
+  
+  -https://dev.java/learn/jlink/
 
 ![image](https://github.com/user-attachments/assets/f7073760-5f4b-44d3-93e4-84deeea8e4bc)
 
