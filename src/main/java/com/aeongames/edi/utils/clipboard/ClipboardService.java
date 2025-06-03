@@ -807,7 +807,7 @@ public final class ClipboardService implements Runnable, FlavorListener, Clipboa
                         RequestQueue.add(SYSTEM_CLIPBOARD);
                     }
                     if (!processingData) {
-                        ClipboardService.this.notify();// notify the thread to process the clipboard changes.
+                        ClipboardService.this.notifyAll();// notify the thread to process the clipboard changes.
                     }
                 }
             }
