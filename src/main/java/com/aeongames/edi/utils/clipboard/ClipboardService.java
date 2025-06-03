@@ -624,6 +624,7 @@ public final class ClipboardService implements Runnable, FlavorListener, Clipboa
             }
             var clipply = processClipboardChange(getNextQueuedClip());
             if (Objects.nonNull(clipply) && retrypending-- > 0) {
+                LoggingHelper.getLogger(LOGGERNAME).info("error happend, attempt to queue a retry and a delay.");
                 RequestQueue.offer(clipply);
                 //delay the execution to await Clipboard owner to finish adding 
                 //or processing data into the it. and avoid the same error.
@@ -722,7 +723,7 @@ public final class ClipboardService implements Runnable, FlavorListener, Clipboa
                 }
             } catch (ClipboardException Cex) {
                 LoggingHelper.getLogger(LOGGERNAME)
-                        .log(Level.SEVERE, "Clipboard Exception detected", Cex);
+                        .log(Level.SEVERE, "Clipboard Exception detected Will return", Cex);
                 return clipboard;
             } catch (Throwable ex) {
                 //capture all other errors and log em 
