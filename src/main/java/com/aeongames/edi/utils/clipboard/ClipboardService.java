@@ -157,7 +157,7 @@ public final class ClipboardService implements Runnable, FlavorListener, Clipboa
     /**
      * Internal Name for this Class Logger.
      */
-    private static final String LOGGERNAME = "ClipBoardListenerLogger";
+    private static final String LOGGERNAME = "ClipBoardServiceLogger";
     /**
      * the amount of times to retry if fail to open the clipboard and get the
      * clipboard metadata.
