@@ -328,7 +328,7 @@ public class ImageProcessor implements FlavorProcessor {
             }
             if (image != null) {
                 Report("Calculating Checksum");
-                var signature = ByteUtils.ByteArrayToString(digestStream.getMessageDigest().digest());
+                var signature = ByteUtils.byteArrayToString(digestStream.getMessageDigest().digest());
                 if (SignaturesFile.containsKey(signature)) {
                     reportCheckSum(signature, SignaturesFile.get(signature));
                     Report("File Alredy Recorded.");

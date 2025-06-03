@@ -44,7 +44,7 @@ public class ByteUtils {
      * @param Array
      * @return the hexadecimal string representation of the byte array
      */
-    public static String ByteArrayToString(final byte Array[]){
+    public static String byteArrayToString(final byte Array[]){
         Objects.requireNonNull(Array,"Invalid Byte Array");
         StringBuilder hexString = new StringBuilder(); // This will contain hash as hexidecimal
         for (byte byte_data:Array) {
@@ -62,14 +62,14 @@ public class ByteUtils {
      * @param buffer the buffer to convert
      * @return the hexadecimal string representation of the byte array
      */
-    public static String ByteArrayToString(final ByteBuffer buffer){
+    public static String byteArrayToString(final ByteBuffer buffer){
         Objects.requireNonNull(buffer,"Invalid Byte Array");
         buffer.rewind();
         int num=buffer.remaining();
         byte values[]= new byte[num];
         buffer.get(values);
         buffer.rewind();
-        return ByteArrayToString(values);
+        return byteArrayToString(values);
     }
 
     /**
@@ -79,7 +79,7 @@ public class ByteUtils {
      * @param hex
      * @return 
      */
-    public static byte[] HexToBytes(String hex) {
+    public static byte[] hexToBytes(String hex) {
         Objects.requireNonNull(hex, "the hex value cannot be null");
        final byte values[] = new byte[hex.length()/2];
         for (int i = 0; i < values.length; i++) {
@@ -96,18 +96,18 @@ public class ByteUtils {
      * @param data the data that will be stored in the array
      * @return the array contained the value.
      */
-    public static final ByteBuffer to_byte_buff(final byte data) {
+    public static final ByteBuffer toByteBuff(final byte data) {
         return ByteBuffer.allocate(1).put(data).asReadOnlyBuffer();
     }
     
     /**
      * wraps the data provided into a byteBuffer. 
      * please not that the ByteBuffer does NOT copy the data. make sure the 
-     * provided byte array is immutable. otherwise use to_safe_bytebuff
+     * provided byte array is immutable. otherwise use toSafeByteBuff
      * @param data
      * @return a ReadOnly ByteBuffer that wraps the provided data 
      */
-    public static final ByteBuffer to_byte_buff(final byte[] data) {
+    public static final ByteBuffer toByteBuff(final byte[] data) {
         return ByteBuffer.allocate(data.length).put(data).asReadOnlyBuffer();
     }
     /**
@@ -117,9 +117,9 @@ public class ByteUtils {
      * @param data the data to copy and wrap into a ByteBuffer.
      * @return (immutable) ReadOnly ByteBuffer that contains a copy of the provided data.
      */
-    public static final ByteBuffer to_safe_bytebuff(byte[] data){
+    public static final ByteBuffer toSafeByteBuff(byte[] data){
         final byte[] immutablearray= Arrays.copyOf(data, data.length);
-        return to_byte_buff(immutablearray);
+        return toByteBuff(immutablearray);
     }
 
     /**
@@ -128,7 +128,7 @@ public class ByteUtils {
      * @param data the data that will be stored in the array
      * @return the array contained the value.
      */
-    public static final ByteBuffer to_byte_buff(final short data) {
+    public static final ByteBuffer toByteBuff(final short data) {
         return ByteBuffer.allocate(2).putShort(data).asReadOnlyBuffer();
     }
 
@@ -138,7 +138,7 @@ public class ByteUtils {
      * @param data the data that will be stored in the array
      * @return the array contained the value.
      */
-    public static final ByteBuffer to_byte_buff(char data) {
+    public static final ByteBuffer toByteBuff(char data) {
         return ByteBuffer.allocate(2).putChar(data).asReadOnlyBuffer();
     }
 
@@ -148,7 +148,7 @@ public class ByteUtils {
      * @param data the data that will be stored in the array
      * @return the array contained the value.
      */
-    public static final ByteBuffer to_byte_buff(int data) {
+    public static final ByteBuffer toByteBuff(int data) {
         return ByteBuffer.allocate(4).putInt(data).asReadOnlyBuffer();
     }
 
@@ -158,7 +158,7 @@ public class ByteUtils {
      * @param data the data that will be stored in the array
      * @return the array contained the value.
      */
-    public static final ByteBuffer to_byte_buff(long data) {
+    public static final ByteBuffer toByteBuff(long data) {
         return ByteBuffer.allocate(8).putLong(data).asReadOnlyBuffer();
     }
 
@@ -168,7 +168,7 @@ public class ByteUtils {
      * @param data the data that will be stored in the array
      * @return the array contained the value.
      */
-    public static final ByteBuffer to_byte_buff(float data) {
+    public static final ByteBuffer toByteBuff(float data) {
         return ByteBuffer.allocate(4).putFloat(data).asReadOnlyBuffer();
     }
 
@@ -178,7 +178,7 @@ public class ByteUtils {
      * @param data the data that will be stored in the array
      * @return the array contained the value.
      */
-    public static final ByteBuffer to_byte_buff(double data) {
+    public static final ByteBuffer toByteBuff(double data) {
         return ByteBuffer.allocate(8).putDouble(data).asReadOnlyBuffer();
     }
 
@@ -188,7 +188,7 @@ public class ByteUtils {
      * @param data the data that will be stored in the array
      * @return the array contained the value.
      */
-    public static final ByteBuffer to_byte_buff(boolean data) {
+    public static final ByteBuffer toByteBuff(boolean data) {
         return ByteBuffer.allocate(1).putDouble(data ? 0x01 : 0x00).asReadOnlyBuffer();
     }
 

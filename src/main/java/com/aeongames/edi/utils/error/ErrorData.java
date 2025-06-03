@@ -27,10 +27,10 @@ public class ErrorData {
     private final Throwable error;
 
     public ErrorData(Throwable error) {
-        error=Objects.requireNonNull(error, "the error cannot be null");
+        error = Objects.requireNonNull(error, "the error cannot be null");
         ErrorTittle = "Error on Execution";
         ErrorMessage = Objects.requireNonNullElse(error.getMessage(),
-               Objects.requireNonNullElse(error.getCause().getMessage(),"Error during Execution"));
+                Objects.requireNonNullElse(error.getCause().getMessage(), "Error during Execution"));
         this.error = error;
     }
 
@@ -38,11 +38,11 @@ public class ErrorData {
         error = Objects.requireNonNull(err, "the error cannot be null");
         title = Objects.requireNonNullElse(title, "Error on Execution");
         ErrorTittle = title.strip().equals("") ? "Error on Execution" : title;
-        if (Message != null &&  !Message.strip().equals("") ) {
+        if (Message != null && !Message.strip().equals("")) {
             ErrorMessage = Message;
         } else if (error != null) {
             ErrorMessage = Objects.requireNonNullElse(error.getMessage(),
-               Objects.requireNonNullElse(error.getCause().getMessage(),"Error during Execution"));
+                    Objects.requireNonNullElse(error.getCause().getMessage(), "Error during Execution"));
         } else {
             ErrorMessage = "Error on the Application, details are not provided.";
         }
@@ -51,7 +51,7 @@ public class ErrorData {
     public ErrorData(String Message, Throwable err) {
         error = Objects.requireNonNull(err, "the error cannot be null");
         ErrorTittle = "Error on Execution";
-        if (Message != null &&  !Message.strip().equals("") ) {
+        if (Message != null && !Message.strip().equals("")) {
             ErrorMessage = Message;
         } else if (error != null) {
             ErrorMessage = error.getMessage();
@@ -81,15 +81,27 @@ public class ErrorData {
      * @see Throwable#printStackTrace(java.io.PrintWriter)
      */
     public String getErrorStack() {
+      return getStackStringForError(error);
+    }
+
+    /**
+     * builds and returns a String representation of the stack when the error
+     * was captured.
+     *
+     * @param Error the error to get the string stack trace from.
+     * @return a String with the output from the Error.
+     * @see Throwable#printStackTrace(java.io.PrintWriter)
+     */
+    public static final String getStackStringForError(Throwable Error) {
         String ErrorStackString = "";
         try (StringWriter writer = new StringWriter()) {
             try (PrintWriter out = new PrintWriter(writer)) {
-                error.printStackTrace(out);
-                if(error.getCause()!=null){
-                    error.getCause().printStackTrace(out);
+                Error.printStackTrace(out);
+                if (Error.getCause() != null) {
+                    Error.getCause().printStackTrace(out);
                 }
                 //out.flush(); //StringWritter flush does nothing.
-               ErrorStackString= writer.toString();
+                ErrorStackString = writer.toString();
             }
         } catch (IOException e) {
         }
