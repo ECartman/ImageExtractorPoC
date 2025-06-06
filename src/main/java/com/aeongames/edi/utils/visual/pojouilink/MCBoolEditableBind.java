@@ -13,6 +13,7 @@
 package com.aeongames.edi.utils.visual.pojouilink;
 
 import com.aeongames.edi.utils.pojo.ListenableProperty;
+import java.util.Objects;
 import javax.swing.text.JTextComponent;
 
 /**
@@ -45,6 +46,7 @@ public class MCBoolEditableBind extends UniDirBroadcastBind<Boolean, JTextCompon
 
     @Override
     protected void setTheUIValue(JTextComponent Component, Boolean newValue) {
+        Objects.requireNonNull(newValue);
         Component.setEditable(negated ? !newValue : newValue);
         Component.setEnabled(negated ? !newValue : newValue);
     }

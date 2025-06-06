@@ -75,7 +75,7 @@ non-sealed abstract class BaseBiDirectionalBind<T, C extends JComponent> extends
      * UI.
      *
      */
-    private final void bind() {
+    private void bind() {
         //before binding. we should check if both have the same value. 
         T POJOvalue = BoundPojo.getValue();
         T UIvalue = getUIValue();
@@ -92,6 +92,7 @@ non-sealed abstract class BaseBiDirectionalBind<T, C extends JComponent> extends
     /**
      * we don't consume this nor we want subclasses to consume it. 
      */
+    @Override
     protected final void PropertyUpdated(T newValue){}
 
     /**
@@ -101,8 +102,9 @@ non-sealed abstract class BaseBiDirectionalBind<T, C extends JComponent> extends
      * {@link #getUIValue()} and if different calls the {@link ListenableProperty#updateProperty(java.lang.Object)
      * }
      */
+    @Override
     protected final void updatePojo() {
-        //if WE are setting the value we should not notify back otherwise 
+        //if we are setting the value we should not notify back otherwise 
         //we end on a deadlock and likely unnecesary update. 
         if (MutatingProperty.get()) {
             return;
@@ -115,7 +117,7 @@ non-sealed abstract class BaseBiDirectionalBind<T, C extends JComponent> extends
         }
         MutatingProperty.set(true);
         try {
-            BoundPojo.updateProperty(currentUIValue);
+            BoundPojo.setValue(currentUIValue);
         } finally {
             MutatingProperty.set(false);
         }

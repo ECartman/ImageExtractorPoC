@@ -17,7 +17,7 @@ package com.aeongames.edi.utils.pojo;
  * {@link #super}
  * @author Eduardo
  */
-public class BooleanPropertyPojo extends PropertyPojo<Boolean> {
+public final class BooleanPropertyPojo extends PropertyPojo<Boolean> {
 
     /**
      * gather the integer primitive Property and returns its value. if not set

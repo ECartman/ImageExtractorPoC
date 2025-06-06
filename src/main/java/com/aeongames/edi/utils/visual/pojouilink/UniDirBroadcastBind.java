@@ -131,8 +131,18 @@ non-sealed abstract class UniDirBroadcastBind<T, C extends JComponent> extends B
      */
     protected abstract void UnboundUIListener(C Component);
 
+    /**
+     * returns the value of type {@code T} from the provided component.
+     * @param component the component to get the property of interest
+     * @return the value of the property that is currently tracked.
+     */
     protected abstract T getUIValueFor(C component);
 
+    /**
+     * sets the value of the {@code Component} to {newValue}
+     * @param Component the component to modify.
+     * @param newValue the new value.
+     */
     protected abstract void setTheUIValue(C Component, T newValue);
 
 }

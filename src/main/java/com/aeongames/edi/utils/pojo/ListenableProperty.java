@@ -15,22 +15,27 @@ package com.aeongames.edi.utils.pojo;
 /**
  * This Interface defines a set of functions that a Property that can be listen
  * for changes on the property. 
+ * <Strong>the implementer MUST ensure this class is Syncronized</Strong>
+ * and must ensure that the read writes are atomic, however the implementer is 
+ * not bound to ensure that when sending notification the value is updated.
  * @author Eduardo Vindas
  * @param <T> the Property Type Class that represent the value this property holds
  */
-public interface ListenableProperty<T> {
+public sealed interface ListenableProperty<T> 
+        permits PropertyPojo,FastPropertyPojo{
     /**
-     * updates the underline Object Property {@code Property} with the new value
-     * {@code newProperty}
+     * attempts to update the underline {@code T} Property with the new value
+     * and returns whenever or not Success to update the value.
+     * the implementation might wait to update and update the value 
+     * or just timeout and return false.
      *
      * @param newValue the new Value to set to the specified property.
      * @return true if able to change, false otherwise.
      */
-    boolean updateProperty(T newValue);
-
+    boolean tryUpdateProperty(T newValue);
     /**
-     * updates the underline Object Property {@code Property} with the new value
-     * {@code newProperty}
+     * updates the underline Object Property {@code T} with the new value
+     * {@code T}
      * this function might or might not throw a run-time exception if it fails. 
      * @see #updateProperty(java.lang.Object, java.lang.Object)    
      * @param newValue the new Value to set to the specified property.
@@ -40,7 +45,7 @@ public interface ListenableProperty<T> {
     /**
      * gather the Object Property and returns its value. if not set might return 
      * null
-     * @return the current value for the {@code Property}
+     * @return the current value for the {@code T}
      */
     T getValue();
     

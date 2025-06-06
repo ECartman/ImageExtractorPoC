@@ -68,6 +68,8 @@ public class ImageExtractor extends javax.swing.JFrame {
         txtLog = new com.aeongames.edi.utils.visual.TranslucentTextArea();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("com/aeongames/imgext/app/resource/app"); // NOI18N
+        setTitle(bundle.getString("app.name")); // NOI18N
         setMinimumSize(new java.awt.Dimension(400, 700));
 
         javax.swing.GroupLayout PImageLayout = new javax.swing.GroupLayout(PImage);

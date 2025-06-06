@@ -133,7 +133,7 @@ public abstract sealed class BaseBinder<T, C extends JComponent> implements Prop
      * @param newValue the value to set into the UI
      * @return if succeeds or not.
      */
-    protected final boolean SetUIProperty(T newValue) {
+    private boolean SetUIProperty(T newValue) {
         if (!SwingUtilities.isEventDispatchThread()) {
             throw new IllegalThreadStateException("this Function can only be called from EDT");
         }
@@ -229,7 +229,8 @@ public abstract sealed class BaseBinder<T, C extends JComponent> implements Prop
     }
 
     /**
-     * this method gets notified when a new value from the POJO arrived. 
+     * this method gets notified when a new value from the POJO arrived.
+     * and intended to use for sub task before updating the ui
      * this is in order for Sub classes to use.
      * @param newValue 
      */

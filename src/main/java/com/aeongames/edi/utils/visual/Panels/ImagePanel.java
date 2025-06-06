@@ -39,7 +39,7 @@ public class ImagePanel extends javax.swing.JPanel {
      * the default image location we use on our Image panel when none is
      * provided.
      */
-    static final String DEF_LOGO = "/com/aeongames/stegsolveplus/ui/pexels-photo-7319068.jpeg";
+    static final String DEF_LOGO = "/com/aeongames/imgext/app/resource/pexels-photo-7319068.jpeg";
 
     private static Image DefaultImageLoaded;
     /**

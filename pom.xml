@@ -18,8 +18,20 @@
     </properties>
     
     <build>
+        <!-- update the app.properties with the project variables -->
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                      <include>**/*.*</include>
+                    <include>com/aeongames/imgext/app/resources/app.properties</include>
+                </includes>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
+                <!-- support to testing class on Modular project. fixes warnings and simplifies testing on modular projects -->
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.5.3</version>
