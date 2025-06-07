@@ -16,7 +16,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.logging.FileHandler;
@@ -63,7 +62,7 @@ public class LoggingHelper {
      * the folder where we prefer the logs to be stored at. relative to the Run
      * time Folder
      */
-    private static final Path LOG_FOLDER = Paths.get("Logs");
+    private static final Path LOG_FOLDER = Path.of("Logs");
 
     /**
      * a map that hold references to the registered loggers that were requested
