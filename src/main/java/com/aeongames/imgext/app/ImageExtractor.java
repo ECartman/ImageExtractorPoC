@@ -14,9 +14,10 @@ package com.aeongames.imgext.app;
 
 import com.aeongames.edi.utils.clipboard.ClipboardService;
 import com.aeongames.imgext.components.ImageProcessor;
+import java.awt.Desktop;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -27,6 +28,7 @@ import javax.swing.JFileChooser;
  * @author Eduardo Vindas
  */
 public class ImageExtractor extends javax.swing.JFrame {
+
     private final ClipboardService MainListener;
     private final ImageProcessor MyProcessor;
 
@@ -37,7 +39,7 @@ public class ImageExtractor extends javax.swing.JFrame {
      */
     public ImageExtractor() throws NoSuchAlgorithmException {
         initComponents();
-        var safePath = Paths.get(System.getProperty("user.home"), "Downloads");
+        var safePath = Path.of(System.getProperty("user.home"), "Downloads");
         txtfolder.setText(safePath.toString());
         MyProcessor = new ImageProcessor(safePath);
         MainListener = ClipboardService.getClipboardService();
@@ -66,17 +68,18 @@ public class ImageExtractor extends javax.swing.JFrame {
         txtImageType = new javax.swing.JLabel();
         jScrollPane2 = new javax.swing.JScrollPane();
         txtLog = new com.aeongames.edi.utils.visual.TranslucentTextArea();
+        opFolder = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("com/aeongames/imgext/app/resource/app"); // NOI18N
         setTitle(bundle.getString("app.name")); // NOI18N
-        setMinimumSize(new java.awt.Dimension(400, 700));
+        setMinimumSize(new java.awt.Dimension(500, 700));
 
         javax.swing.GroupLayout PImageLayout = new javax.swing.GroupLayout(PImage);
         PImage.setLayout(PImageLayout);
         PImageLayout.setHorizontalGroup(
             PImageLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 483, Short.MAX_VALUE)
+            .addGap(0, 0, Short.MAX_VALUE)
         );
         PImageLayout.setVerticalGroup(
             PImageLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -109,29 +112,38 @@ public class ImageExtractor extends javax.swing.JFrame {
         txtLog.setRows(5);
         jScrollPane2.setViewportView(txtLog);
 
+        opFolder.setText("Open folder");
+        opFolder.setToolTipText("");
+        opFolder.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                opFolderActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout translucentPanel1Layout = new javax.swing.GroupLayout(translucentPanel1);
         translucentPanel1.setLayout(translucentPanel1Layout);
         translucentPanel1Layout.setHorizontalGroup(
             translucentPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(translucentPanel1Layout.createSequentialGroup()
-                .addGroup(translucentPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(translucentPanel1Layout.createSequentialGroup()
-                        .addComponent(jLabel4)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(txtfolder))
-                    .addGroup(translucentPanel1Layout.createSequentialGroup()
-                        .addContainerGap()
-                        .addComponent(jLabel5)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(FileSpiner, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jLabel3)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(txtImageType, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+                .addContainerGap()
+                .addComponent(jLabel5)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(btsave)
-                .addContainerGap())
+                .addComponent(FileSpiner, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jLabel3)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(txtImageType, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addGap(121, 121, 121))
             .addComponent(jScrollPane2, javax.swing.GroupLayout.Alignment.TRAILING)
+            .addGroup(translucentPanel1Layout.createSequentialGroup()
+                .addComponent(jLabel4)
+                .addGap(2, 2, 2)
+                .addComponent(txtfolder)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(btsave, javax.swing.GroupLayout.PREFERRED_SIZE, 132, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(opFolder)
+                .addContainerGap())
         );
         translucentPanel1Layout.setVerticalGroup(
             translucentPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -142,11 +154,12 @@ public class ImageExtractor extends javax.swing.JFrame {
                     .addComponent(FileSpiner, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel3)
                     .addComponent(txtImageType))
-                .addGap(18, 18, 18)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(translucentPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel4)
                     .addComponent(txtfolder, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(btsave))
+                    .addComponent(btsave)
+                    .addComponent(opFolder))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jScrollPane2))
         );
@@ -181,7 +194,12 @@ public class ImageExtractor extends javax.swing.JFrame {
 
 
     private void btsaveActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btsaveActionPerformed
-        JFileChooser chs = new JFileChooser(Paths.get(System.getProperty("user.home"), "Downloads").toFile());
+        var DownloadPath = Path.of(System.getProperty("user.home"), "Downloads");
+        var stringpath = txtfolder.getText().strip();
+        if (!stringpath.isBlank()) {
+            DownloadPath = Path.of(stringpath);
+        }
+        JFileChooser chs = new JFileChooser(DownloadPath.toFile());
         chs.setDialogTitle("Please Select the Destination Folder");
         chs.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
         if (chs.showSaveDialog(this) == javax.swing.JFileChooser.APPROVE_OPTION) {
@@ -189,13 +207,24 @@ public class ImageExtractor extends javax.swing.JFrame {
                 String Path = chs.getSelectedFile().toString();
                 txtfolder.setText(Path);
             } else {
-                txtfolder.setText(Paths.get(System.getProperty("user.home"), "Downloads").toString());
+                txtfolder.setText(Path.of(System.getProperty("user.home"), "Downloads").toString());
             }
         } else {
-            txtfolder.setText(Paths.get(System.getProperty("user.home"), "Downloads").toString());
+            txtfolder.setText(Path.of(System.getProperty("user.home"), "Downloads").toString());
         }
         MyProcessor.updateSafePath(Path.of(txtfolder.getText()));
     }//GEN-LAST:event_btsaveActionPerformed
+
+    private void opFolderActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_opFolderActionPerformed
+        //open the Folder
+        var path = Path.of(txtfolder.getText().strip());
+        if (Desktop.isDesktopSupported()) {
+            try {
+                Desktop.getDesktop().open(path.toFile());
+            } catch (IOException ex) {
+            }
+        }
+    }//GEN-LAST:event_opFolderActionPerformed
 
     /**
      * @param args the command line arguments
@@ -236,6 +265,7 @@ public class ImageExtractor extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
     private javax.swing.JScrollPane jScrollPane2;
+    private javax.swing.JButton opFolder;
     private com.aeongames.edi.utils.visual.Panels.TranslucentPanel translucentPanel1;
     private javax.swing.JLabel txtImageType;
     private com.aeongames.edi.utils.visual.TranslucentTextArea txtLog;
@@ -247,14 +277,14 @@ public class ImageExtractor extends javax.swing.JFrame {
         var ProcInfoDisp = MyProcessor.getInfoLink();
         ProcInfoDisp.bindCurrentStatus(txtLog);
         ProcInfoDisp.bindSavingFile(txtfolder);
-        ProcInfoDisp.bindEditableTxtComp(txtfolder,txtLog);
-        ProcInfoDisp.bindEnabledComp(btsave,FileSpiner);
+        ProcInfoDisp.bindEditableTxtComp(txtfolder, txtLog);
+        ProcInfoDisp.bindEnabledComp(btsave, FileSpiner);
         ProcInfoDisp.bindImageType(txtImageType);
         ProcInfoDisp.bindstatusBarInfo(txtstatusbar);
         ProcInfoDisp.bindFileNumber(FileSpiner);
         ProcInfoDisp.bindImage(PImage);
         ProcInfoDisp.bindIndeterminateProgressBar(PBstate);
-        ProcInfoDisp.setUIEnablement(true);       
+        ProcInfoDisp.setUIEnablement(true);
         ProcInfoDisp.updateFromSettings();
         if (MainListener.isProcessingTask() || MainListener.isServiceOnline()) {
             //we cannot add as the service is online 

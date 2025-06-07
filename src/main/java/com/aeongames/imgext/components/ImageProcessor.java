@@ -64,6 +64,7 @@ public class ImageProcessor implements FlavorProcessor {
 
     private static final int PUSHBACK_BUFFER = 4096;
     private static final int METADATA_CHUNK = 32;
+    public static final String FILEPATTERN = "%04d.%s";//#### it. 1-> "0001.x" where x is jpg, png etc ;
     private transient Path SafeLocation;
     private HashMap<String, String> SignaturesFile;
     private static final DataFlavor[] PROCESSORFLAVOR = new DataFlavor[]{DataFlavor.getTextPlainUnicodeFlavor()};
@@ -371,8 +372,8 @@ public class ImageProcessor implements FlavorProcessor {
     }
 
     private synchronized Path GetNextFile(String imageType) {
-        var nextfile = InfoLink.getFileNumber().toString();
-        var FilePath = SafeLocation.resolve(String.format("%s.%s", nextfile, imageType));
+        var nextfile = InfoLink.getFileNumber();
+        var FilePath = SafeLocation.resolve(String.format(FILEPATTERN, nextfile, imageType));
         return FilePath;
     }
 
