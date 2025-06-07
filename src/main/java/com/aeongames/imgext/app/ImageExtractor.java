@@ -15,6 +15,7 @@ package com.aeongames.imgext.app;
 import com.aeongames.edi.utils.clipboard.ClipboardService;
 import com.aeongames.imgext.components.ImageProcessor;
 import java.awt.Desktop;
+import java.awt.Image;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -31,6 +32,11 @@ public class ImageExtractor extends javax.swing.JFrame {
 
     private final ClipboardService MainListener;
     private final ImageProcessor MyProcessor;
+
+    private static Image LoadAppIcon(String path) {
+        var resource = ImageExtractor.class.getResource(path);
+        return resource == null ? null : new javax.swing.ImageIcon(resource).getImage();
+    }
 
     /**
      * create a new Frame.that will be display on the OS.
@@ -73,6 +79,7 @@ public class ImageExtractor extends javax.swing.JFrame {
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("com/aeongames/imgext/app/resource/app"); // NOI18N
         setTitle(bundle.getString("app.name")); // NOI18N
+        setIconImage(LoadAppIcon(bundle.getString("app.image.ico")));
         setMinimumSize(new java.awt.Dimension(500, 700));
 
         javax.swing.GroupLayout PImageLayout = new javax.swing.GroupLayout(PImage);
