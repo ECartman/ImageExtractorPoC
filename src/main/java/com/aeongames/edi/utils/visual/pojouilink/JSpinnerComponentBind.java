@@ -27,7 +27,7 @@ public class JSpinnerComponentBind extends BaseBiDirectionalBind<Integer, JSpinn
     };
 
     public JSpinnerComponentBind(JSpinner component, ListenableProperty<Integer> pojo) {
-        super(component, pojo);                
+        super(component, pojo);              
         BindUIListener();
     }
 

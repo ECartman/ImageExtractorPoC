@@ -13,25 +13,22 @@
 package com.aeongames.edi.utils.clipboard;
 
 /**
- * The class {@code ClipboardException} is a form of {@code Exception} that 
+ * The class {@code DataTransferException} is a form of {@code Exception} that 
  * indicates conditions that the clipboard fail to be open, read, or data changed
- * before we were able to use the data.
- * and the Clipboard Service should stop and retry to access the clipboard. 
- *
- * <p>
- * The class {@code ClipboardException} is an <em>checked exception</em>.
+ * before we were able to use the data.and the Clipboard Service should stop and retry to access the clipboard.<p>
+ * The class {@code DataTransferException} is an <em>checked exception</em>. 
  *
  * @author Eduardo Vindas
  * @see java.lang.Exception
  * @since 1.0
  */
-public final class ClipboardException extends Exception {
+public final class DataTransferException extends Exception {
 
     /**
      * Creates a new instance of <code>CliboardException</code> without detail
      * message.
      */
-    public ClipboardException(Exception Source) {
+    public DataTransferException(Exception Source) {
         super(Source);
     }
 
@@ -41,7 +38,7 @@ public final class ClipboardException extends Exception {
      *
      * @param msg the detail message.
      */
-    public ClipboardException(Exception Source, String msg) {
+    public DataTransferException(Exception Source, String msg) {
         super(msg, Source);
     }
 

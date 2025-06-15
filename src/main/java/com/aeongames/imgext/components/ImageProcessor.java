@@ -12,7 +12,7 @@
  */
 package com.aeongames.imgext.components;
 
-import com.aeongames.edi.utils.clipboard.ClipboardException;
+import com.aeongames.edi.utils.clipboard.DataTransferException;
 import com.aeongames.edi.utils.common.CharsetCompatibilityChecker;
 import com.aeongames.edi.utils.clipboard.FlavorProcessor;
 import com.aeongames.edi.utils.threading.StopSignalProvider;
@@ -34,7 +34,6 @@ import java.nio.charset.Charset;
 import java.nio.charset.CoderResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
@@ -45,18 +44,12 @@ import java.util.logging.Level;
 import javax.imageio.ImageIO;
 
 /**
- * this class will work as an FlavorProcessor Orchestrator that will hold and
- * arrange the work to be parsed by the tool from checking its Integrity,
- * looking if Already parsed saving into files and so on. this class is NOT a
- * thread. and will not work by its own. it need a worker that "drives" the
- * Orchestrator.
- *
- * however threads are intended to call this class and queue new work. and
- * register as listeners to get updates on their work status. and when finish to
- * get notified.
- *
- * finally. a worker should also pull from this class and process the data.
- *
+ * this class will work as an FlavorProcessor that will handle data that comes
+ * from the Clipboard Service. via the {@link FlavorProcessor#handleFlavor
+ * (java.awt.datatransfer.DataFlavor,com.aeongames.edi.utils.threading.StopSignalProvider,
+ * java.awt.datatransfer.Transferable)} and we process that data to read the
+ * flavor from the clipboard and manipulate as we need. on this specific class
+ * to process Clipboard data that comes as a text stream into a File.
  *
  * @author Eduardo Vindas
  */
@@ -65,7 +58,6 @@ public class ImageProcessor implements FlavorProcessor {
     private static final int PUSHBACK_BUFFER = 4096;
     private static final int METADATA_CHUNK = 32;
     public static final String FILEPATTERN = "%04d.%s";//#### it. 1-> "0001.x" where x is jpg, png etc ;
-    private transient Path SafeLocation;
     private HashMap<String, String> SignaturesFile;
     private static final DataFlavor[] PROCESSORFLAVOR = new DataFlavor[]{DataFlavor.getTextPlainUnicodeFlavor()};
     private final MessageDigest Hasher;
@@ -78,10 +70,9 @@ public class ImageProcessor implements FlavorProcessor {
      * @exception NoSuchAlgorithmException if we cannot initialize the Message
      * Digester.
      */
-    public ImageProcessor(Path safePath) throws NoSuchAlgorithmException {
+    public ImageProcessor() throws NoSuchAlgorithmException {
         InfoLink = new ProgressObject();
         RegisterForPathChanges();
-        SafeLocation = safePath;
         SignaturesFile = new HashMap<>();
         MessageDigest resultHasher = null;
         try {
@@ -98,8 +89,7 @@ public class ImageProcessor implements FlavorProcessor {
         if (!Files.exists(safePath) || !Files.isDirectory(safePath) || !Files.isWritable(safePath)) {
             return false;
         }
-        SafeLocation = safePath;
-        return true;
+        return InfoLink.setSavingFilePath(safePath);
     }
 
     /**
@@ -154,7 +144,7 @@ public class ImageProcessor implements FlavorProcessor {
         UIStatus(true);
     }
 
-    private InputStream OpenClipboard(Transferable transferData, DataFlavor flavor) throws ClipboardException {
+    private InputStream OpenClipboard(Transferable transferData, DataFlavor flavor) throws DataTransferException {
         InputStream TrasferableDataStream = null;
         try {
             Report("Reading The Clipboard Into JVM");
@@ -162,8 +152,8 @@ public class ImageProcessor implements FlavorProcessor {
         } catch (UnsupportedFlavorException | IOException ex) {
             LoggingHelper.getClassLoggerForMe().log(Level.SEVERE, "Unable to pull the TransferData with the registered Flavor.", ex);
             reportError(ex);
-            if(ex instanceof IOException ioe){
-                throw new ClipboardException(ioe,"Unable to pull the data from the Clipboard.");
+            if (ex instanceof IOException ioe) {
+                throw new DataTransferException(ioe, "Unable to pull the data from the Clipboard.");
             }
         }
         return TrasferableDataStream;
@@ -261,9 +251,9 @@ public class ImageProcessor implements FlavorProcessor {
     /**
      * this function handles the Clipboard info assumed that is text and we will
      * check if the information on the Clipboard represent a Image
-     * 
+     *
      * and report this information to the UI async
-     * 
+     *
      * @param flavor the expected flavor to handle by this method
      * @param transferData the Transferable object to handle
      * @param stopProvider a functional interface that should be used to check
@@ -271,17 +261,17 @@ public class ImageProcessor implements FlavorProcessor {
      * @param clipboard the Clipboard associated with the Transferable
      * @return true if the flavor was handled successfully, false otherwise (or
      * if unable or not supported)
-     * @throws ClipboardException if there was a error that needs to be reported to
-     * the Service and desires to Reattempt to read the Clipboard. 
+     * @throws DataTransferException if there was a error that needs to be
+     * reported to the Service and desires to Reattempt to read the Clipboard.
      */
     @Override
     public boolean handleFlavor(DataFlavor flavor, StopSignalProvider stopProvider,
-            Transferable transferData)throws ClipboardException {
+            Transferable transferData) throws DataTransferException {
         reportNewRequest();
         if (!isThisForUs(flavor, stopProvider)) {
             return false;
         }
-        //if we cant open the clipboard data. throw ClipboardException so caller retry
+        //if we cant open the clipboard data. throw DataTransferException so caller retry
         //to get the clipboard data. as we should not do that here. 
         InputStream TrasferableDataStream = OpenClipboard(transferData, flavor);
         if (Objects.isNull(TrasferableDataStream)) {
@@ -373,7 +363,7 @@ public class ImageProcessor implements FlavorProcessor {
 
     private synchronized Path GetNextFile(String imageType) {
         var nextfile = InfoLink.getFileNumber();
-        var FilePath = SafeLocation.resolve(String.format(FILEPATTERN, nextfile, imageType));
+        var FilePath = InfoLink.getSaveFilePath().resolve(String.format(FILEPATTERN, nextfile, imageType));
         return FilePath;
     }
 
@@ -383,7 +373,7 @@ public class ImageProcessor implements FlavorProcessor {
 
     private void RegisterForPathChanges() {
         InfoLink.registerSavingFilePath((Source, newValue) -> {
-            var success = updateSafePath(Paths.get(newValue));
+            updateSafePath(newValue);
         });
     }
 

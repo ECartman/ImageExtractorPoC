@@ -47,7 +47,7 @@ public class ImageExtractor extends javax.swing.JFrame {
         initComponents();
         var safePath = Path.of(System.getProperty("user.home"), "Downloads");
         txtfolder.setText(safePath.toString());
-        MyProcessor = new ImageProcessor(safePath);
+        MyProcessor = new ImageProcessor();
         MainListener = ClipboardService.getClipboardService();
         initListener();
     }

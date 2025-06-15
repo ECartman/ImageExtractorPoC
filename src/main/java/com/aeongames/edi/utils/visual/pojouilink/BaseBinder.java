@@ -41,8 +41,16 @@ import javax.swing.SwingUtilities;
  * @param <C> The Type of UI that subclass from JComponent.
  */
 public abstract sealed class BaseBinder<T, C extends JComponent> implements PropertyChangeListener<T, ListenableProperty<T>>
-        permits BaseBiDirectionalBind, CachedUniDirectionalBind,UniDirBroadcastBind {
-
+        permits BaseBiDirectionalBind, CachedUniDirectionalBind, UniDirBroadcastBind {
+    /**
+     * this Enumerator defines a bidirectional policy on how to Sync the values 
+     * when a bind is stablish. child classes might use.
+     */
+    public enum BindSync {
+        DONT_SYNC,
+        SYNC_FROM_BEAN,
+        SYNC_FROM_UI,
+    }
     /**
      * the Underline Java Property to bound to the Component. this is a Object
      * of type {@link ListenableProperty} that has code get, set and listen to
@@ -229,10 +237,11 @@ public abstract sealed class BaseBinder<T, C extends JComponent> implements Prop
     }
 
     /**
-     * this method gets notified when a new value from the POJO arrived.
-     * and intended to use for sub task before updating the ui
-     * this is in order for Sub classes to use.
-     * @param newValue 
+     * this method gets notified when a new value from the POJO arrived. and
+     * intended to use for sub task before updating the ui this is in order for
+     * Sub classes to use.
+     *
+     * @param newValue
      */
     protected void PropertyUpdated(T newValue) {
     }

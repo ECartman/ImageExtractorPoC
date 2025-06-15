@@ -49,7 +49,7 @@ import javax.swing.JComponent;
  * @param <C> The Type of UI that subclass from JComponent.
  */
 non-sealed abstract class BaseBiDirectionalBind<T, C extends JComponent> extends BaseBinder<T, C> {
-
+    private final BindSync SyncBeanToUI;
     /**
      * Creates a Instance of {@link BaseBiDirectionalBind} that check for the
      * objects on the parameters are not null and then Bounds them.
@@ -57,8 +57,15 @@ non-sealed abstract class BaseBiDirectionalBind<T, C extends JComponent> extends
      * @param component_to_Bind the UI Component to Bind
      * @param BindablePojo the POJO To bind
      */
+    protected BaseBiDirectionalBind(C component_to_Bind, ListenableProperty<T> BindablePojo, BindSync syncBeantoUI) {
+        super(component_to_Bind, BindablePojo);
+        SyncBeanToUI=syncBeantoUI;
+        bind();
+    }
+    
     protected BaseBiDirectionalBind(C component_to_Bind, ListenableProperty<T> BindablePojo) {
         super(component_to_Bind, BindablePojo);
+        SyncBeanToUI=BindSync.DONT_SYNC;
         bind();
     }
 
@@ -80,9 +87,11 @@ non-sealed abstract class BaseBiDirectionalBind<T, C extends JComponent> extends
         T POJOvalue = BoundPojo.getValue();
         T UIvalue = getUIValue();
         if (!Objects.equals(POJOvalue, UIvalue)) {
-            if (Objects.isNull(POJOvalue)) {
-                //if the Pojo is null we Sync it to the UI value. 
+            if (Objects.isNull(POJOvalue)|| BindSync.SYNC_FROM_UI == SyncBeanToUI) {
+                //if the Pojo is null or rule require us to we Sync it to the UI value. 
                 BoundPojo.setValue(UIvalue);
+            }else if(BindSync.SYNC_FROM_BEAN == SyncBeanToUI){
+                setTheUIValue(POJOvalue);
             }
             //Should we update if the values are not null but do not match??? 
         }

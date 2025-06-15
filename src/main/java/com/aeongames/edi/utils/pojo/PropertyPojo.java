@@ -15,6 +15,7 @@ package com.aeongames.edi.utils.pojo;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * this class defines a "simple Java Object" that holds a single property of
@@ -25,19 +26,20 @@ import java.util.List;
  * primitives) for complex objects and notification on changes for objects. you
  * need to override functionality to support this. this class can be overridden
  * to extend functionality
- * 
+ *
  * also this class is Syncronized using basic object Syncronization. and thus.
  * reading and setting the value will cause this object to lock. this is usually
- * desired. for Thread to UI. but some threads might need to update As fast as 
+ * desired. for Thread to UI. but some threads might need to update As fast as
  * possible for those a different implementation is required.
  *
  * @author Eduardo Vindas
  * @param <T> the Property Type Class that represent the value this property
  * holds
  */
-public sealed class PropertyPojo<T> implements ListenableProperty<T> 
-    permits BooleanPropertyPojo,
-            IntegerPropertyPojo{
+public sealed class PropertyPojo<T> implements ListenableProperty<T>
+        permits BooleanPropertyPojo,
+        IntegerPropertyPojo,
+        PathPropertyPojo {
 
     /**
      * creates a new {@link PropertyPojo} of {@link String} Type. with the
@@ -110,7 +112,7 @@ public sealed class PropertyPojo<T> implements ListenableProperty<T>
 
     /**
      * has the same effect as calling {@link PropertyPojo#setValue} this means
-     * that this function is synchronized and does not support a more complex 
+     * that this function is synchronized and does not support a more complex
      * locking (atm)
      *
      * @param newValue the new value to set.
@@ -118,8 +120,10 @@ public sealed class PropertyPojo<T> implements ListenableProperty<T>
      */
     @Override
     public synchronized boolean tryUpdateProperty(T newValue) {
-        Value = newValue;
-        firePropertyChanged();
+        if (!Objects.equals(Value, newValue)) {
+            Value = newValue;
+            firePropertyChanged();
+        }
         return true;
     }
 
@@ -128,8 +132,10 @@ public sealed class PropertyPojo<T> implements ListenableProperty<T>
      */
     @Override
     public synchronized void setValue(T newValue) {
-        Value = newValue;
-        firePropertyChanged();
+        if (!Objects.equals(Value, newValue)) {
+            Value = newValue;
+            firePropertyChanged();
+        }
     }
 
     /**

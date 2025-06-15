@@ -16,15 +16,17 @@ import com.aeongames.edi.utils.file.Properties_File;
 import com.aeongames.edi.utils.pojo.BooleanPropertyPojo;
 import com.aeongames.edi.utils.pojo.IntegerPropertyPojo;
 import com.aeongames.edi.utils.pojo.ListenableProperty;
+import com.aeongames.edi.utils.pojo.PathPropertyPojo;
 import com.aeongames.edi.utils.pojo.PropertyChangeListener;
 import com.aeongames.edi.utils.pojo.PropertyPojo;
 import com.aeongames.edi.utils.visual.Panels.ImagePanel;
 import com.aeongames.edi.utils.visual.pojouilink.BaseBinder;
+import com.aeongames.edi.utils.visual.pojouilink.BaseBinder.BindSync;
 import com.aeongames.edi.utils.visual.pojouilink.ImagePanelBinding;
 import com.aeongames.edi.utils.visual.pojouilink.JLabelComponentBind;
 import com.aeongames.edi.utils.visual.pojouilink.JSpinnerComponentBind;
 import com.aeongames.edi.utils.visual.pojouilink.JtextComponentAppendUpdateBind;
-import com.aeongames.edi.utils.visual.pojouilink.JtextComponentBind;
+import com.aeongames.edi.utils.visual.pojouilink.JtextPathBind;
 import com.aeongames.edi.utils.visual.pojouilink.MCBoolCompEnableBind;
 import com.aeongames.edi.utils.visual.pojouilink.MCBoolEditableBind;
 import com.aeongames.edi.utils.visual.pojouilink.MCBoolProbarIndeterminate;
@@ -49,7 +51,7 @@ public final class ProgressObject {
     private final PropertyPojo<String> CurrentStatus = PropertyPojo.newStringPojo();
     private final PropertyPojo<String> ImageTypeString = PropertyPojo.newStringPojo();
     private final PropertyPojo<BufferedImage> ImageProperty = new PropertyPojo<>();
-    private final PropertyPojo<String> SavingFilePath = PropertyPojo.newStringPojo();
+    private final PathPropertyPojo SavingFilePath = new PathPropertyPojo();
     private final PropertyPojo<String> statusBarInfo = PropertyPojo.newStringPojo();
     private final IntegerPropertyPojo CurrentFileNumber = new IntegerPropertyPojo();
     private final BooleanPropertyPojo CurrentUIEnablement = new BooleanPropertyPojo();
@@ -58,8 +60,9 @@ public final class ProgressObject {
     public ProgressObject() {
         Bindings = new ArrayList<>(10);
         Props = new Properties_File(Path.of("props.xml"));
+        SavingFilePath.setValue(Props.getProperty("folder"));
         SavingFilePath.addPropertyListener((source, newValue) -> {
-            Props.setProperty("folder", newValue);
+            Props.setProperty("folder", newValue.toAbsolutePath().toString());
             Props.SaveIfNeeded();
         });
         CurrentFileNumber.addPropertyListener((var source, var newValue) -> {
@@ -67,25 +70,26 @@ public final class ProgressObject {
             Props.SaveIfNeeded();
         });
     }
-
+    
+    public void updateFromSettings() {
+        var folder = Props.getProperty("folder");
+        var page = Props.getProperty("Page");
+        if (Objects.nonNull(folder)) {
+            SavingFilePath.setValue(folder);
+        }
+        if (Objects.nonNull(page)) {
+            int currepage = Integer.parseInt(page);
+            CurrentFileNumber.setValue(currepage);
+        }
+    }
+    
+    //<editor-fold defaultstate="collapsed" desc="Setters">
     public void setImageTypeString(String value) {
         if (Objects.nonNull(value)) {
             ImageTypeString.setValue(value);
         } else {
             ImageTypeString.setValue("");
         }
-    }
-    
-    public void updateFromSettings(){
-        var folder= Props.getProperty("folder");
-        var page= Props.getProperty("Page");
-        if(Objects.nonNull(folder)){
-            SavingFilePath.setValue(folder);
-        }
-        if(Objects.nonNull(page)){
-            int currepage= Integer.parseInt(page);
-            CurrentFileNumber.setValue(currepage);
-        }       
     }
 
     public void setUIEnablement(boolean b) {
@@ -96,12 +100,12 @@ public final class ProgressObject {
         CurrentFileNumber.setValue(integer);
     }
 
-    public void setImageData(BufferedImage image) {
-        ImageProperty.setValue(image);
+    public boolean setSavingFilePath(Path path) {
+        return SavingFilePath.tryUpdateProperty(path);
     }
 
-    public Integer getFileNumber() {
-        return CurrentFileNumber.getValue();
+    public void setImageData(BufferedImage image) {
+        ImageProperty.setValue(image);
     }
 
     public void fileNumberpplus() {
@@ -115,25 +119,35 @@ public final class ProgressObject {
     public void updateStatus(String message) {
         CurrentStatus.setValue(message);
     }
+    //</editor-fold>
     
-    public void registerSavingFilePath(PropertyChangeListener<String, ListenableProperty<String>> Listener){
+    public Integer getFileNumber() {
+        return CurrentFileNumber.getValue();
+    }
+    
+    public Path getSaveFilePath(){
+        return SavingFilePath.getValue();
+    }
+
+    public void registerSavingFilePath(PropertyChangeListener<Path, ListenableProperty<Path>> Listener) {
         SavingFilePath.addPropertyListener(Listener);
     }
 
+    //<editor-fold defaultstate="collapsed" desc="Binds">
     public MCBoolProbarIndeterminate bindIndeterminateProgressBar(JProgressBar tobind) {
-        MCBoolProbarIndeterminate statusBind = new MCBoolProbarIndeterminate(tobind, CurrentUIEnablement, true);
+        var statusBind = new MCBoolProbarIndeterminate(tobind, CurrentUIEnablement, true);
         Bindings.add(statusBind);
         return statusBind;
     }
 
     public JtextComponentAppendUpdateBind bindCurrentStatus(JTextComponent tobind) {
-        JtextComponentAppendUpdateBind statusBind = new JtextComponentAppendUpdateBind(tobind, CurrentStatus);
+        var statusBind = new JtextComponentAppendUpdateBind(tobind, CurrentStatus);
         Bindings.add(statusBind);
         return statusBind;
     }
 
-    public JtextComponentBind bindSavingFile(JTextComponent tobind) {
-        JtextComponentBind BindFilePath = new JtextComponentBind(tobind, SavingFilePath);
+    public JtextPathBind bindSavingFile(JTextComponent tobind) {
+        var BindFilePath = new JtextPathBind(tobind, SavingFilePath,BindSync.SYNC_FROM_BEAN);
         Bindings.add(BindFilePath);
         return BindFilePath;
     }
@@ -143,7 +157,7 @@ public final class ProgressObject {
         if (tobind.length < 1) {
             throw new IllegalArgumentException("you need to provide at least 1 item");
         }
-        MCBoolEditableBind binding = new MCBoolEditableBind(tobind[0], CurrentUIEnablement);
+        var binding = new MCBoolEditableBind(tobind[0], CurrentUIEnablement);
         for (int i = 1; i < tobind.length; i++) {
             binding.addComponent(tobind[i]);
         }
@@ -170,7 +184,7 @@ public final class ProgressObject {
         if (comps.length < 1) {
             throw new IllegalArgumentException("you need to provide at least 1 item");
         }
-        MCBoolCompEnableBind binding = new MCBoolCompEnableBind(comps[0], CurrentUIEnablement);
+        var binding = new MCBoolCompEnableBind(comps[0], CurrentUIEnablement);
         for (int i = 1; i < comps.length; i++) {
             binding.addComponent(comps[i]);
         }
@@ -179,15 +193,15 @@ public final class ProgressObject {
     }
 
     public JSpinnerComponentBind bindFileNumber(JSpinner FileSpiner) {
-        JSpinnerComponentBind BinFileNameSpinner = new JSpinnerComponentBind(FileSpiner, CurrentFileNumber);
+        var BinFileNameSpinner = new JSpinnerComponentBind(FileSpiner, CurrentFileNumber);
         Bindings.add(BinFileNameSpinner);
         return BinFileNameSpinner;
     }
 
     public ImagePanelBinding bindImage(ImagePanel PImage) {
-        ImagePanelBinding ImageBind = new ImagePanelBinding(PImage, ImageProperty);
+        var ImageBind = new ImagePanelBinding(PImage, ImageProperty);
         Bindings.add(ImageBind);
         return ImageBind;
     }
-
+    //</editor-fold>
 }

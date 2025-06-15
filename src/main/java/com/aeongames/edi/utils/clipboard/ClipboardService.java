@@ -157,7 +157,7 @@ public final class ClipboardService implements Runnable, FlavorListener, Clipboa
     /**
      * Internal Name for this Class Logger.
      */
-    private static final String LOGGERNAME = "ClipBoardServiceLogger";
+    private static final String LOGGERNAME = "DataTransferLogger";
     /**
      * the amount of times to retry if fail to open the clipboard and get the
      * clipboard metadata.
@@ -721,13 +721,13 @@ public final class ClipboardService implements Runnable, FlavorListener, Clipboa
                     LoggingHelper.getLogger(LOGGERNAME).info("Clipboard Data Handled");
                     break;
                 }
-            } catch (ClipboardException Cex) {
+            } catch (DataTransferException Cex) {
                 LoggingHelper.getLogger(LOGGERNAME)
-                        .log(Level.SEVERE, "Clipboard Exception detected Will return", Cex);
+                        .log(Level.SEVERE, "Data Transfer Exception detected Will return", Cex);
                 return clipboard;
             } catch (Throwable ex) {
                 //capture all other errors and log em 
-                //we do this as handlers might not have handled by the handler.
+                //we do this as handlers might not have handled the error.
                 //but are NOT errors that we should care for.
                 LoggingHelper.getLogger(LOGGERNAME)
                         .log(Level.SEVERE, "Error Has been catch at processClipboardChange", ex);

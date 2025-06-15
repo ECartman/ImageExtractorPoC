@@ -47,7 +47,7 @@ public class JLabelComponentBind extends BaseBiDirectionalBind<String, JLabel> {
      * @param pojo the {@link ListenableProperty} to bind
      */
     public JLabelComponentBind(JLabel component, ListenableProperty<String> pojo) {
-        super(component, pojo);        
+        super(component, pojo);
         BindUIListener();
     }
 
