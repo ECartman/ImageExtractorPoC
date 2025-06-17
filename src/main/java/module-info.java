@@ -21,5 +21,6 @@ module com.aeongames.imgext {
     requires transitive java.datatransfer;
     requires transitive java.logging;
     requires transitive java.management;
+    requires transitive com.aeongames.edi.utils;
     exports com.aeongames.imgext.app;
 }

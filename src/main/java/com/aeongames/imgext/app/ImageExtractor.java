@@ -12,7 +12,7 @@
  */
 package com.aeongames.imgext.app;
 
-import com.aeongames.edi.utils.clipboard.ClipboardService;
+import com.aeongames.edi.utils.datatransfer.clipboard.ClipboardService;
 import com.aeongames.imgext.components.ImageProcessor;
 import java.awt.Desktop;
 import java.awt.Image;

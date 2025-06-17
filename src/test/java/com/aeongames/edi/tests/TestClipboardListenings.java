@@ -12,7 +12,7 @@ package com.aeongames.edi.tests;
  *  THE SOFTWARE.
  * 
  */
-import com.aeongames.edi.utils.clipboard.ClipboardService;
+import com.aeongames.edi.utils.datatransfer.clipboard.ClipboardService;
 import com.aeongames.edi.utils.common.CharsetCompatibilityChecker;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.UnsupportedFlavorException;

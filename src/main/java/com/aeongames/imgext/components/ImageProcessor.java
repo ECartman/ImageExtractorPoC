@@ -12,9 +12,9 @@
  */
 package com.aeongames.imgext.components;
 
-import com.aeongames.edi.utils.clipboard.DataTransferException;
+import com.aeongames.edi.utils.datatransfer.DataTransferException;
 import com.aeongames.edi.utils.common.CharsetCompatibilityChecker;
-import com.aeongames.edi.utils.clipboard.FlavorProcessor;
+import com.aeongames.edi.utils.datatransfer.FlavorProcessor;
 import com.aeongames.edi.utils.threading.StopSignalProvider;
 import com.aeongames.edi.utils.common.ByteUtils;
 import com.aeongames.edi.utils.common.SkipInputStream;
