@@ -760,12 +760,12 @@ public final class ClipboardService implements Runnable, FlavorListener, Clipboa
             var added2 = flavorsMime.add(flavor.getDefaultRepresentationClassAsString());
             if (added) {
                 if (added2) {
-                    LoggingHelper.getLogger("Clipboard.Info").log(Level.INFO, "Flavor: {0} :: Flavor Class: {1}", new Object[]{flavor.getHumanPresentableName(), flavor.getDefaultRepresentationClassAsString()});
+                    LoggingHelper.getLogger(LOGGERNAME+".debug").log(Level.INFO, "Flavor: {0} :: Flavor Class: {1}", new Object[]{flavor.getHumanPresentableName(), flavor.getDefaultRepresentationClassAsString()});
                 } else {
-                    LoggingHelper.getLogger("Clipboard.Info").log(Level.INFO, "Flavor: {0}", new Object[]{flavor.getHumanPresentableName()});
+                    LoggingHelper.getLogger(LOGGERNAME+".debug").log(Level.INFO, "Flavor: {0}", new Object[]{flavor.getHumanPresentableName()});
                 }
             } else if (added2) {
-                LoggingHelper.getLogger("Clipboard.Info").log(Level.INFO, "Flavor Class: {0}", new Object[]{flavor.getDefaultRepresentationClassAsString()});
+                LoggingHelper.getLogger(LOGGERNAME+".debug").log(Level.INFO, "Flavor Class: {0}", new Object[]{flavor.getDefaultRepresentationClassAsString()});
             }
         }
         flavorsNames.clear();

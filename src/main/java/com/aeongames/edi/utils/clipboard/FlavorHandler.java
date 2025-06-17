@@ -19,6 +19,7 @@ import com.aeongames.edi.utils.threading.StopSignalProvider;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -101,17 +102,23 @@ public class FlavorHandler {
     }
 
     /**
-     * Checks if this Handler Can consume Any of the Provided 
-     * @param otherFlavor the flavors to check against our internal registered flavors.
-     * @return the first instance of a flavor that this class can handle 
+     * Checks if this Handler Can consume Any of the Provided
+     *
+     * @param otherFlavor the flavors to check against our internal registered
+     * flavors.
+     * @return the first instance of a flavor that this class can handle
      */
     public final DataFlavor consumesAny(DataFlavor... otherFlavor) {
-        for (DataFlavor aflavor : otherFlavor) {
-            if (flavors.contains(aflavor)) {
-                return aflavor;
-            }
+        var list= List.of(otherFlavor);
+        var encounter = flavors.stream().filter((t) -> list.contains(t)).findFirst();
+        if(encounter.isPresent()){
+            return encounter.get();
         }
         return null;
+    }
+
+    public final boolean canConsume(DataFlavor... otherFlavor) {
+        return Objects.nonNull(consumesAny(otherFlavor));
     }
 
     /**
